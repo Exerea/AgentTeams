@@ -1,0 +1,45 @@
+﻿openapi: 3.0.3
+info:
+  title: VIP Membership API
+  version: 1.0.0
+  description: Canonical API contract managed by documentation-guild/api-spec-owner.
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/tiers:
+    get:
+      summary: Get available member tiers
+      operationId: listMemberTiers
+      responses:
+        '200':
+          description: Tier list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tiers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MemberTier'
+                required:
+                  - tiers
+components:
+  schemas:
+    MemberTier:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        benefits:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - code
+        - name

@@ -1,0 +1,32 @@
+﻿id: T-120
+title: tiers API を OpenAPI へ反映
+owner: coordinator
+assignee: documentation-guild/api-spec-owner
+status: in_review
+target_stack:
+  language: typescript
+  framework: nextjs
+  infra: aws
+depends_on:
+  - T-110
+adr_refs:
+  - 0005-member-tier-logic.md
+local_flags:
+  major_decision_required: false
+  documentation_sync_required: true
+  tech_specialist_required: false
+  qa_review_required: false
+  research_track_enabled: false
+  backend_security_required: false
+warnings: []
+handoffs:
+  - from: backend/security-expert
+    to: documentation-guild/api-spec-owner
+    at: 2026-02-07T02:45:00Z
+    memo: Securityレビュー後に OpenAPI 同期を依頼。
+  - from: documentation-guild/api-spec-owner
+    to: documentation-guild/tech-writer
+    at: 2026-02-07T03:00:00Z
+    memo: /api/v1/tiers 仕様更新済み。README と図更新を依頼。
+notes: docs/api/openapi.yaml に /api/v1/tiers を反映済み。互換性確認中。
+updated_at: 2026-02-07T03:00:00Z

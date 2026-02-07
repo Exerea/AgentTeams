@@ -1,0 +1,37 @@
+﻿version: v2
+project:
+  name: vip-membership-project
+  repository: your-org/your-repo
+  default_branch: main
+tasks:
+  - id: T-100
+    title: 会員ランク導入の ADR を作成
+    status: done
+    assignee: documentation-guild/adr-manager
+    file: TASK-00100-member-tier-adr.yaml
+    updated_at: 2026-02-07T02:20:00Z
+  - id: T-110
+    title: 会員ランクテーブル追加とマイグレーション実装
+    status: in_review
+    assignee: backend/db-specialist
+    file: TASK-00110-member-tier-migration.yaml
+    updated_at: 2026-02-07T02:45:00Z
+  - id: T-120
+    title: tiers API を OpenAPI へ反映
+    status: in_review
+    assignee: documentation-guild/api-spec-owner
+    file: TASK-00120-openapi-sync-tiers.yaml
+    updated_at: 2026-02-07T03:00:00Z
+  - id: T-130
+    title: README とアーキテクチャ図を同期
+    status: in_progress
+    assignee: documentation-guild/tech-writer
+    file: TASK-00130-doc-sync-readme-architecture.yaml
+    updated_at: 2026-02-07T03:15:00Z
+  - id: T-140
+    title: 最終コードレビュー
+    status: todo
+    assignee: qa-review-guild/code-critic
+    file: TASK-00140-final-code-review.yaml
+    updated_at: 2026-02-07T03:15:00Z
+updated_at: 2026-02-07T03:15:00Z
