@@ -101,22 +101,25 @@ updated_at: 2026-02-07T03:15:00Z  # 変更後も据え置き
 
 ## R-05
 ### Rule
-`DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を作業開始時・ロール切替時に明示し、`handoffs[].memo` 先頭行へ記録する。
+宣言は二層で実施する。`chat` は口上 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が <task> を務めます。<要旨>` を作業開始時・ロール切替時・Gate判断時に明示し、`handoffs[].memo` 先頭行は `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を記録する。
 ### Intent
 「誰が動いているか」を常に可視化する。
 ### Good Example
-```yaml
+```text
+【稼働口上】殿、ただいま 足軽 の backend/security-expert が T-110 を務めます。入力検証の確認を行います。
 memo: DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic | 重大指摘なし。
 ```
 ### Bad Example
-```yaml
-memo: security review done, please check.
+```text
+セキュリティ見ました。次どうぞ。
+memo: handoff done
 ```
 ### Why Bad
-担当主体が追えず、責任境界が曖昧になる。
+殿様向けの可読性と機械検証の両方を失い、責任境界が曖昧になる。
 ### Detection
 - `validate-task-state.ps1`
 - `validate-task-state.sh`
+- manual review（chat 口上の有無を確認）
 ### Related Files
 - `.codex/AGENTS.md`
 - `.codex/coordinator.md`

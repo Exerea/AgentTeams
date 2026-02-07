@@ -20,6 +20,7 @@ def main() -> int:
     files = {
         "agents": repo_root / ".codex" / "AGENTS.md",
         "coordinator": repo_root / ".codex" / "coordinator.md",
+        "common_ops": repo_root / "shared" / "skills" / "common-ops.md",
         "spec": repo_root / "docs" / "specs" / "0001-agentteams-as-is-operations.md",
         "readme": repo_root / "README.md",
         "protocol": repo_root / "docs" / "guides" / "communication-protocol.md",
@@ -83,11 +84,26 @@ def main() -> int:
     declaration_refs = {
         "agents": ["DECLARATION", "team=", "role=", "task=", "action="],
         "coordinator": ["DECLARATION", "team=", "role=", "task=", "action="],
+        "common_ops": ["DECLARATION", "team=", "role=", "task=", "action="],
         "spec": ["DECLARATION", "team=", "role=", "task=", "action="],
         "readme": ["DECLARATION", "team=", "role=", "task=", "action="],
         "protocol": ["DECLARATION", "team=", "role=", "task=", "action="],
+        "scenarios": ["DECLARATION", "team=", "role=", "task=", "action="],
     }
     for key, needles in declaration_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    # Roleplay declaration vocabulary consistency
+    roleplay_refs = {
+        "agents": ["殿様", "家老", "足軽"],
+        "coordinator": ["殿様", "家老", "足軽"],
+        "common_ops": ["殿様", "家老", "足軽"],
+        "spec": ["殿様", "家老", "足軽"],
+        "readme": ["殿様", "家老", "足軽"],
+        "protocol": ["殿様", "家老", "足軽"],
+        "scenarios": ["殿様", "家老", "足軽"],
+    }
+    for key, needles in roleplay_refs.items():
         require_all(content[key], needles, files[key], errors)
 
     # Secret scan references
@@ -133,8 +149,8 @@ def main() -> int:
         require_all(content[key], needles, files[key], errors)
 
     # Spec heading check
-    if "Task 契約（v2.6b）" not in content["spec"]:
-        errors.append(f"{files['spec'].as_posix()} must include heading: Task 契約（v2.6b）")
+    if "Task 契約（v2.8）" not in content["spec"]:
+        errors.append(f"{files['spec'].as_posix()} must include heading: Task 契約（v2.8）")
 
     if errors:
         for err in errors:

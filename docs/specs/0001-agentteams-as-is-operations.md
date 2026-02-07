@@ -1,9 +1,9 @@
-# AgentTeams 現行構成と命令連携・運用サマリー（As-Is v2.6b）
+# AgentTeams 現行構成と命令連携・運用サマリー（As-Is v2.8）
 
 ## Summary
 このリポジトリは Template Repo として各案件に同梱し、coordinator が task 分解とロール割当を行う。  
 状態正本は `.codex/states/` で、`_index.yaml` は全体俯瞰、`TASK-*.yaml` は実務詳細を管理する。  
-v2.6b では稼働宣言プロトコルを追加し、`chat + handoff memo` でアクティブロールの可視化を必須化した。
+v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口上、`handoff memo` は機械可読宣言でアクティブロール可視化を必須化した。
 
 ## 運用シナリオ正本
 - `docs/guides/request-routing-scenarios.md`
@@ -58,12 +58,14 @@ v2.6b では稼働宣言プロトコルを追加し、`chat + handoff memo` で�
 - warning は `warnings[]` へ記録
 
 ## 稼働宣言プロトコル
-- 宣言フォーマット: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
-- `chat`: 作業開始時とロール切替時に宣言する
+- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が <task> を務めます。<要旨>`
+- 機械可読宣言: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+- 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
+- `chat`: 作業開始時・ロール切替時・Gate判断時に口上 + 宣言を出す
 - `task`: `handoffs.memo` の先頭行に宣言を記録する
 - `status in (in_progress, in_review, done)` の task は宣言付き handoff 証跡を最低1件持つ
 
-## Task 契約（v2.6b）
+## Task 契約（v2.8）
 ### 必須トップレベルキー
 - `id`
 - `title`
