@@ -22,6 +22,10 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8").lstrip("\ufeff")
 
 
+def normalize_newlines(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def normalize(value: str) -> str:
     v = (value or "").strip()
     if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
@@ -309,7 +313,7 @@ def quote(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def write_role_gap_index(path: Path, data: dict) -> None:
+def render_role_gap_index(data: dict) -> str:
     candidates = data.get("candidates", [])
     lines = [
         f"version: {data.get('version', 'v1')}",
@@ -317,8 +321,7 @@ def write_role_gap_index(path: Path, data: dict) -> None:
     ]
     if not candidates:
         lines.append("candidates: []")
-        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        return
+        return "\n".join(lines) + "\n"
 
     lines.append("candidates:")
     for c in candidates:
@@ -341,7 +344,7 @@ def write_role_gap_index(path: Path, data: dict) -> None:
         lines.append(f"    adr_ref: {quote(normalize(str(c.get('adr_ref', ''))))}")
         lines.append(f"    updated_at: {normalize(str(c.get('updated_at', '')))}")
 
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return "\n".join(lines) + "\n"
 
 
 def build_candidate(signal_type: str, summary: str, evidence_task_ids: list[str], suggested_action: str, now_iso: str) -> dict:
@@ -541,6 +544,7 @@ def main() -> int:
             )
         )
 
+    existing_index_text = read_text(index_path) if index_path.exists() else ""
     index = parse_role_gap_index(index_path)
     existing = index.get("candidates", [])
     if not isinstance(existing, list):
@@ -561,9 +565,15 @@ def main() -> int:
         added += 1
 
     index["version"] = normalize(str(index.get("version", rules.get("version", "v1")))) or "v1"
-    index["updated_at"] = now_iso
+    if added > 0:
+        index["updated_at"] = now_iso
+    elif not normalize(str(index.get("updated_at", ""))):
+        index["updated_at"] = now_iso
     index["candidates"] = existing
-    write_role_gap_index(index_path, index)
+
+    rendered_index_text = render_role_gap_index(index)
+    if normalize_newlines(rendered_index_text) != normalize_newlines(existing_index_text):
+        index_path.write_text(rendered_index_text, encoding="utf-8")
 
     open_count = sum(1 for c in existing if normalize(str(c.get("status", ""))) == "open")
     print(f"role gap detection completed: candidates_total={len(existing)}, candidates_open={open_count}, added={added}")
@@ -572,4 +582,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

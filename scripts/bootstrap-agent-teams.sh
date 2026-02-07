@@ -47,6 +47,7 @@ paths_to_copy=(
   "AGENTS.md"
   "README.md"
   ".gitleaks.toml"
+  ".github"
   ".codex"
   "docs"
   "shared"
@@ -60,6 +61,12 @@ overwritten=0
 copy_entry() {
   local source_path="$1"
   local destination_path="$2"
+  local source_name
+  source_name="$(basename "$source_path")"
+
+  if [[ "$source_name" == "__pycache__" || "$source_name" == *.pyc ]]; then
+    return
+  fi
 
   if [[ -d "$source_path" ]]; then
     mkdir -p "$destination_path"

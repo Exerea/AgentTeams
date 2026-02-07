@@ -32,6 +32,15 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 - 依頼文テンプレは `User Request` をコピーして使う
 - `coordinatorとして処理して` は推奨文であり必須ではない（coordinator がデフォルト受理）
 
+### テンプレート展開
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-agent-teams.ps1 --target <project-path>
+```
+```bash
+bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
+```
+- `bootstrap-agent-teams` は `.github/workflows/agentteams-validate.yml` を含む運用一式を展開する
+
 ## 稼働宣言プロトコル
 - 宣言フォーマット: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 - `chat`: 作業開始時とロール切替時に宣言する
@@ -62,6 +71,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.p
 ```bash
 bash ./scripts/validate-secrets.sh
 ```
+- `gitleaks` 未導入時は初回実行で `./.tools/gitleaks/` に自動取得して実行する（既存導入済みがあればそちらを優先）
 
 ### Role Gap
 ```powershell
@@ -104,3 +114,4 @@ bash ./scripts/validate-repo.sh
 - `accepted` は `adr_ref` 必須
 - `implemented` は `decision_note` に変更証跡必須
 - `_index.yaml` と `_role-gap-index.yaml` は coordinator 専任更新
+- `detect-role-gaps.py` は新規候補や内容変化がある場合のみ `_role-gap-index.yaml` を更新する

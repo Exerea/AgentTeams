@@ -58,6 +58,7 @@ $pathsToCopy = @(
   'AGENTS.md',
   'README.md',
   '.gitleaks.toml',
+  '.github',
   '.codex',
   'docs',
   'shared',
@@ -77,6 +78,11 @@ function Copy-TemplateEntry {
     [Parameter(Mandatory = $true)][bool]$AllowOverwrite
   )
 
+  $sourceName = Split-Path -Path $SourcePath -Leaf
+  if ($sourceName -eq '__pycache__') {
+    return
+  }
+
   if (Test-Path -LiteralPath $SourcePath -PathType Container) {
     if (-not (Test-Path -LiteralPath $DestinationPath)) {
       New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
@@ -86,6 +92,10 @@ function Copy-TemplateEntry {
       $childDestination = Join-Path -Path $DestinationPath -ChildPath $_.Name
       Copy-TemplateEntry -SourcePath $_.FullName -DestinationPath $childDestination -AllowOverwrite $AllowOverwrite
     }
+    return
+  }
+
+  if ($sourceName.ToLowerInvariant().EndsWith('.pyc')) {
     return
   }
 
