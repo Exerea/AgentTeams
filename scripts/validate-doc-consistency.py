@@ -30,6 +30,8 @@ def main() -> int:
         "role_gap_rules": repo_root / ".codex" / "role-gap-rules.yaml",
         "role_gap_index": repo_root / ".codex" / "states" / "_role-gap-index.yaml",
         "deprecation_rules": repo_root / ".codex" / "deprecation-rules.yaml",
+        "self_update_ps1": repo_root / "scripts" / "self-update-agentteams.ps1",
+        "self_update_sh": repo_root / "scripts" / "self-update-agentteams.sh",
     }
 
     errors: list[str] = []
@@ -225,6 +227,18 @@ def main() -> int:
         "deprecation_rules": ["retired_roles", "retired_paths"],
     }
     for key, needles in deprecation_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    # Self-update policy consistency
+    self_update_refs = {
+        "agents": ["self-update-agentteams.ps1", "self-update-agentteams.sh"],
+        "coordinator": ["self-update-agentteams.ps1", "self-update-agentteams.sh"],
+        "common_ops": ["self-update-agentteams.ps1", "self-update-agentteams.sh"],
+        "readme": ["self-update-agentteams.ps1", "self-update-agentteams.sh", "validate-repo"],
+        "spec": ["self-update-agentteams.ps1", "self-update-agentteams.sh", "validate-repo"],
+        "protocol": ["self_update_commit_push"],
+    }
+    for key, needles in self_update_refs.items():
         require_all(content[key], needles, files[key], errors)
 
     # Spec heading check

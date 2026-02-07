@@ -152,3 +152,18 @@ python .\scripts\validate-deprecated-assets.py
 ```bash
 python3 ./scripts/validate-deprecated-assets.py
 ```
+
+## AgentTeams Self-Update
+AgentTeams 自身の改善を commit/push まで自動化したい場合は以下を使用する。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\self-update-agentteams.ps1 -Message "chore(agentteams): self-update" 
+```
+
+```bash
+bash ./scripts/self-update-agentteams.sh --message "chore(agentteams): self-update"
+```
+
+### オプション
+- `--skip-validate`: 事前の `validate-repo` をスキップ（通常は非推奨）
+- `--no-push`: commit のみ作成して push しない

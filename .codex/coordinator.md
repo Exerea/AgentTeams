@@ -141,3 +141,9 @@
 otes または handoffs.memo に記録する。
 - coordinator は Gate 判断時に改善提案の有無を確認し、不足時は task を locked に戻して差し戻す。
 - 廃止資産の再混入検査として scripts/validate-deprecated-assets.py と .codex/deprecation-rules.yaml を運用必須とする。
+
+## Self-Update Procedure
+1. AgentTeams 自己改善 task の Gate が全て通過していることを確認する。
+2. `scripts/self-update-agentteams.ps1` または `scripts/self-update-agentteams.sh` を実行する。
+3. `validate-repo` 成功後のみ commit/push を許可する。
+4. push 失敗時は task を `blocked` に戻し、`notes` に再試行条件を記録する。

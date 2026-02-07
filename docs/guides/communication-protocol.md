@@ -98,3 +98,9 @@ T-110をやります。
 DECLARATION team=coordinator role=coordinator task=T-210 action=gate_recheck | IMPROVEMENT_PROPOSAL type=process priority=high owner=coordinator summary=Security先行の再検証手順を追加
 - Bad:
 改善します （type/priority/owner/summary が欠落）
+
+## Self-Update Declaration Example
+- Chat口上例:
+`【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「AgentTeams自己更新の反映」を務めます。検証完了後に commit/push を実施します。`
+- Handoff memo 例:
+`DECLARATION team=coordinator role=coordinator task=T-999 action=self_update_commit_push`

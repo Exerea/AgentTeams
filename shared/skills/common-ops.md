@@ -54,3 +54,7 @@
 - 改善提案フォーマット: IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>
 - 記録先: 
 otes または handoffs.memo（DECLARATION と同居可）。
+
+## Self-Update Operation
+- AgentTeams 自己更新時は `scripts/self-update-agentteams.ps1` / `scripts/self-update-agentteams.sh` を使い、`validate-repo` を先に通す。
+- commit/push 実施前に最新の `task notes` と `handoffs` を反映し、証跡を欠落させない。

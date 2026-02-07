@@ -51,3 +51,9 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 - Proposal Format: IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>
 - Enforcement: scripts/validate-task-state.ps1 / scripts/validate-task-state.sh で検証する。
 - Deprecation Hygiene: 廃止資産の再混入を scripts/validate-deprecated-assets.py と .codex/deprecation-rules.yaml で検知し、失敗時は done を確定しない。
+
+## Self-Update Policy
+- AgentTeams が AgentTeams 自身のリポジトリを更新することを許可する。
+- Self-update 実行は coordinator が最終決裁し、`scripts/self-update-agentteams.ps1` または `scripts/self-update-agentteams.sh` を使用する。
+- 原則フローは `validate-repo -> commit -> push`。
+- 失敗時は push せず、task を `blocked` に戻して原因を `notes` に記録する。

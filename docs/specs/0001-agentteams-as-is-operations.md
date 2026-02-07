@@ -169,3 +169,10 @@ python3 ./scripts/validate-rule-examples-coverage.py
 ## Immediate Correction Addendum (v2.8.1)
 - Improvement Proposal Rule: `status=blocked` または `warnings.status=open` を含む task は、`IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>` を `notes` または `handoffs.memo` に記録しない限り前進不可。
 - Deprecation Hygiene: `.codex/deprecation-rules.yaml` を参照し、`scripts/validate-deprecated-assets.py` を CI/ローカルで必須実行する。
+
+## AgentTeams Self-Update Contract
+- AgentTeams 自己改善 task は coordinator 決裁後にのみ `self-update-agentteams` スクリプトで反映する。
+- 反映順序は `validate-repo -> git commit -> git push` を固定する。
+- 実行コマンド:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\self-update-agentteams.ps1 -Message "chore(agentteams): self-update"`
+  - `bash ./scripts/self-update-agentteams.sh --message "chore(agentteams): self-update"`
