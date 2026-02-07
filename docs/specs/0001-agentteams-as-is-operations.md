@@ -3,7 +3,7 @@
 ## Summary
 このリポジトリは Template Repo として各案件に同梱し、coordinator が task 分解とロール割当を行う。  
 状態正本は `.codex/states/` で、`_index.yaml` は全体俯瞰、`TASK-*.yaml` は実務詳細を管理する。  
-v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口上、`handoff memo` は機械可読宣言でアクティブロール可視化を必須化した。
+v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口上、`handoff memo` は機械可読宣言でアクティブロール可視化を必須化した。加えて、作業開始時と Gate判断時に必要性判断を行い、必要時は `【進言】...` を出す。
 
 ## 運用シナリオ正本
 - `docs/guides/request-routing-scenarios.md`
@@ -59,12 +59,25 @@ v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口�
 
 ## 稼働宣言プロトコル
 - 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
+- 進言テンプレ: `【進言】<提案内容>（理由: <risk_or_benefit>）`
 - 機械可読宣言: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
 - `chat`: 作業開始時・ロール切替時・Gate判断時に口上 + 宣言を出す
+- `chat`: 作業開始時・Gate判断時には必要性判断を行い、必要時は進言を併記する
 - 口上では `task_id` 単独表現を禁止し、作業タイトルを必須記載する
 - `task`: `handoffs.memo` の先頭行に宣言を記録する
 - `status in (in_progress, in_review, done)` の task は宣言付き handoff 証跡を最低1件持つ
+
+## MCP運用契約（DevTools MCP）
+1. MCP は常時必須ではない。`coordinator` が必要性判断し、必要時のみ進言して適用する。
+2. MCP適用候補:
+- UI/UX 実動作確認
+- Protocol warning の再現と切り分け
+- CLIログのみでは根拠不足の不具合再現
+3. MCP を使った場合は `notes` に `mcp_evidence` を記録する。  
+`mcp_evidence: tool=devtools, purpose=<目的>, result=<結果>, artifacts=<証跡パス>`
+4. MCP 利用時も Gate 判定は別途満たす。MCP結果だけでは `done` を確定しない。
+5. 秘密情報（鍵/トークン/PII）を MCP 操作・ログへ含めない。
 
 ## Task 契約（v2.8）
 ### 必須トップレベルキー

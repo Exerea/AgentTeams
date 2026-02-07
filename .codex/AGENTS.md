@@ -9,7 +9,7 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 2. `task_file_path` で指定された task ファイル以外を更新しない。
 3. `_index.yaml` と `_role-gap-index.yaml` は coordinator のみ更新する。
 4. task 更新時は `status` と `updated_at` を必ず更新する。
-5. 稼働宣言は二層で実施する。`chat` では日本語口上 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>` を作業開始時・ロール切替時・Gate判断時に明示し、`task_id` だけの口上は禁止する。`handoffs[].memo` 先頭行は機械可読フォーマット `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を必須記録する（呼称マッピング: ユーザー=殿様、coordinator=家老、coordinator以外=足軽）。
+5. 稼働宣言は二層で実施する。`chat` では日本語口上 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>` を作業開始時・ロール切替時・Gate判断時に明示し、`task_id` だけの口上は禁止する。`handoffs[].memo` 先頭行は機械可読フォーマット `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を必須記録する（呼称マッピング: ユーザー=殿様、coordinator=家老、coordinator以外=足軽）。加えて、宣言時には必要性判断として「依頼内容をそのまま実行するか」「追加レビュー・追加Gate・MCP活用が必要か」を必ず判断し、必要なら殿様へ進言してから進行する。
 6. `local_flags.major_decision_required=true` は ADR 条件充足前に実装 task を `in_progress` にしない。
 7. API仕様の正本は `docs/api/openapi.yaml` とし、API変更は `documentation-guild/api-spec-owner` を経由する。
 8. `local_flags.documentation_sync_required=true` は `documentation-guild/tech-writer` 完了前に `done` にしない。
@@ -41,6 +41,7 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 
 ## Escalation
 - 担当外作業や競合判断は coordinator にエスカレーションする。
+- 追加対応の必要性（品質/安全性/検証性）を検知した場合は、coordinator が進言を先に行い、承認後に task を再分解する。
 - ADR未整備の重要判断は先に ADR 起票を行う。
 - 通信プロトコル違反は `protocol-team/interaction-auditor` が検知し、coordinator が最終決裁する。
 - ルール解釈に迷った場合は `docs/guides/rule-examples.md` を優先参照する。

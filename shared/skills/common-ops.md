@@ -27,6 +27,11 @@
 `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 18. `handoffs.memo` の先頭行は稼働宣言にする。  
 例: `DECLARATION team=backend role=api-architect task=T-110 action=handoff_to_security`
+19. 各ロールは作業開始時と Gate 判断時に必要性判断を実施し、追加レビュー・追加Gate・MCP活用が有効なら `chat` で進言する。  
+進言テンプレ: `【進言】<提案内容>（理由: <risk_or_benefit>）`
+20. MCP を使った作業は `notes` に `mcp_evidence` を残す。  
+テンプレ: `mcp_evidence: tool=devtools, purpose=<目的>, result=<結果>, artifacts=<証跡パス>`
+21. MCP は補助証跡であり、Gate 判定（QA/Security/Protocol/Secret等）の代替にはしない。
 
 ## UX Evidence Format
 - `notes` に `ux_checklist`（pass/needs_fix と根拠）を残す。

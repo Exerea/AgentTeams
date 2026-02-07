@@ -13,6 +13,7 @@
 - 受理直後に次の機械可読宣言を行う。  
 `DECLARATION team=coordinator role=coordinator task=<task_id|N/A> action=intake`
 - 宣言は作業開始時・ロール切替時・Gate判断時（停止/再開/完了確定）・handoff時に必須。
+- 受理直後に必要性判断を行う。判断対象は「追加レビュー」「追加Gate」「MCP活用」「先行調査」の4点とし、必要時は殿様へ進言してから task 分解に進む。
 
 ## Task Decomposition Procedure
 1. 要求を `Goal/Constraints/Acceptance` に分解する。
@@ -35,6 +36,12 @@
 - ユーザー: `殿様`  
 - coordinator: `家老`  
 - coordinator 以外の実行ロール: `足軽`
+10. 各 Gate 判定時に継続可否を再評価し、必要なら進言を先に出す。  
+- 口上例: `【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「追加検証の必要性判断」を務めます。UI実動作確認に DevTools MCP の併用を進言いたします。`
+11. MCP 活用判断を明示する。  
+- `DevTools MCP` を優先検討する場面: UI/UX 実動作確認、Protocol warning 再現、CLIログ不足の不具合切り分け  
+- MCP 併用を決裁した場合、task `notes` に `mcp_evidence` 記録を必須化する。  
+- 秘密情報を扱う操作は MCP で実行しない（必要時はマスク済み検証データを使用）。
 
 ## Assignment Rules
 - UI設計: `frontend/ui-designer`
@@ -114,6 +121,8 @@
 `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 6. `chat` では宣言前に口上を行う（`task_id` だけでなく作業タイトルを必須記載）。  
 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
+7. 追加提案がある場合は口上の次行で進言を明示する。  
+`【進言】<提案内容>（理由: <risk_or_benefit>）`
 
 ## Index Ownership Rules
 - `_index.yaml` の更新は coordinator のみ行う。

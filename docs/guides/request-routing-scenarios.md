@@ -12,6 +12,10 @@
 - handoff は `from/to/at/memo` を必須記録する。
 - `chat` では作業開始時・ロール切替時・Gate判断時に口上を宣言する。  
 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
+- 作業開始時と Gate判断時に必要性判断を行い、追加レビュー・追加Gate・MCP活用が有効なら進言を併記する。  
+`【進言】<提案内容>（理由: <risk_or_benefit>）`
+- MCP を使った場合は `notes` に `mcp_evidence` を記録する。  
+`mcp_evidence: tool=devtools, purpose=<目的>, result=<結果>, artifacts=<証跡パス>`
 - 口上で `task_id` のみ（例: `T-310`）を伝えることは禁止する。
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
 - handoff の `memo` 先頭行は宣言フォーマットを必須記録する。  

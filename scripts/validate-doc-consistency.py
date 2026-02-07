@@ -119,6 +119,33 @@ def main() -> int:
     for key, needles in title_first_refs.items():
         require_all(content[key], needles, files[key], errors)
 
+    # Proactive recommendation rule consistency
+    proactive_refs = {
+        "agents": ["必要性判断", "進言"],
+        "coordinator": ["必要性判断", "進言"],
+        "common_ops": ["必要性判断", "進言"],
+        "spec": ["必要性判断", "進言"],
+        "readme": ["必要性判断", "進言"],
+        "protocol": ["必要性判断", "進言"],
+        "scenarios": ["必要性判断", "進言"],
+        "rule_examples": ["必要性判断", "進言"],
+    }
+    for key, needles in proactive_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    # MCP policy consistency
+    mcp_refs = {
+        "coordinator": ["DevTools MCP", "mcp_evidence"],
+        "common_ops": ["mcp_evidence"],
+        "spec": ["MCP運用契約", "DevTools MCP", "mcp_evidence"],
+        "readme": ["MCP運用", "DevTools MCP", "mcp_evidence"],
+        "protocol": ["MCP Usage Pattern", "DevTools MCP", "mcp_evidence"],
+        "scenarios": ["mcp_evidence"],
+        "rule_examples": ["DevTools MCP"],
+    }
+    for key, needles in mcp_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
     # Secret scan references
     secret_refs = {
         "agents": ["validate-secrets"],

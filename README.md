@@ -26,6 +26,7 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 8. `detect-role-gaps` は候補検知、`validate-role-gap-review` は放置/証跡不備をブロック
 9. `validate-secrets` 失敗時は `done` 不可（Secret Scan Gate）
 10. 稼働宣言を二層化し、`chat` は日本語口上、`handoff memo` は `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を必須化
+11. 作業開始時と Gate判断時に必要性判断を行い、追加レビュー・追加Gate・MCP活用が有効なら `【進言】...` を必須化
 
 ## クイックスタート
 - 運用シナリオ正本: `docs/guides/request-routing-scenarios.md`
@@ -44,12 +45,30 @@ bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
 
 ## 稼働宣言プロトコル
 - 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
+- 進言テンプレ: `【進言】<提案内容>（理由: <risk_or_benefit>）`
 - 機械可読フォーマット: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
 - `chat`: 作業開始時・ロール切替時・Gate判断時に口上 + 宣言を行う
+- `chat`: 作業開始時・Gate判断時には必要性判断を行い、必要時は進言も併記する
 - 口上では `T-310` のような `task_id` 単独表現を禁止し、作業タイトルを必ず伝える
 - `task`: `handoffs.memo` の先頭行に宣言を記録する
 - 例: `DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic`
+
+## MCP運用（DevTools MCP）
+- 位置づけ: MCP は常時必須ではない。`coordinator` が必要性判断して有効と判断した場合に進言して使用する。
+- 主な適用場面:
+1. UI/UX レビューで実動作確認が必要な場合
+2. Protocol warning の再現（Network/Console/DOM確認）が必要な場合
+3. 不具合の再現条件が CLI ログだけでは不足する場合
+- 証跡の残し方:
+1. `chat` に `【進言】...DevTools MCP...` を明記
+2. `handoffs.memo` 先頭に `DECLARATION ... action=...` を記録
+3. `notes` に `mcp_evidence` を記録
+`mcp_evidence: tool=devtools, purpose=<目的>, result=<結果>, artifacts=<スクリーンショット/ログの場所>`
+- 禁止事項:
+1. 秘密情報（鍵/トークン/個人情報）を画面・ログへ貼り付けない
+2. 本番データを無断で操作しない
+3. MCP結果のみで確定せず、該当 Gate の基準（QA/Security/Protocol等）を併せて満たす
 
 ## ローカル検証
 ### Index
