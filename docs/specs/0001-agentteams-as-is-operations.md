@@ -58,10 +58,11 @@ v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口�
 - warning は `warnings[]` へ記録
 
 ## 稼働宣言プロトコル
-- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が <task> を務めます。<要旨>`
+- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 - 機械可読宣言: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
 - `chat`: 作業開始時・ロール切替時・Gate判断時に口上 + 宣言を出す
+- 口上では `task_id` 単独表現を禁止し、作業タイトルを必須記載する
 - `task`: `handoffs.memo` の先頭行に宣言を記録する
 - `status in (in_progress, in_review, done)` の task は宣言付き handoff 証跡を最低1件持つ
 

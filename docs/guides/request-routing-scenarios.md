@@ -11,7 +11,8 @@
 - `_index.yaml` と `_role-gap-index.yaml` の更新は coordinator 専任。
 - handoff は `from/to/at/memo` を必須記録する。
 - `chat` では作業開始時・ロール切替時・Gate判断時に口上を宣言する。  
-`【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が <task> を務めます。<要旨>`
+`【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
+- 口上で `task_id` のみ（例: `T-310`）を伝えることは禁止する。
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
 - handoff の `memo` 先頭行は宣言フォーマットを必須記録する。  
 `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
@@ -57,7 +58,7 @@ local_flags:
 7. qa-review-guild/code-critic -> qa-review-guild/test-architect
 8. qa-review-guild/test-architect -> coordinator
 9. handoff memo 先頭行例: `DECLARATION team=frontend role=ux-specialist task=T-001 action=handoff_to_backend_api`
-10. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の frontend/ui-designer が T-001 を務めます。UI導線の初稿を作成します。`
+10. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の frontend/ui-designer が「会員ランク画面UI初稿作成」を務めます。UI導線の初稿を作成します。`
 
 ### Gate Checks
 - UX Gate: `ux_review_required=true` は `frontend/ux-specialist` 完了前に `done` 不可
@@ -115,7 +116,7 @@ local_flags:
 4. qa-review-guild/code-critic -> qa-review-guild/test-architect
 5. qa-review-guild/test-architect -> coordinator
 6. handoff memo 先頭行例: `DECLARATION team=backend role=api-architect task=T-002 action=handoff_to_code_critic`
-7. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の backend/db-specialist が T-002 を務めます。500エラーの原因を切り分けます。`
+7. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の backend/db-specialist が「500エラー原因切り分け」を務めます。原因を切り分けます。`
 
 ### Gate Checks
 - QA Gate
@@ -170,7 +171,7 @@ local_flags:
 4. qa-review-guild/code-critic -> qa-review-guild/test-architect
 5. qa-review-guild/test-architect -> coordinator
 6. handoff memo 先頭行例: `DECLARATION team=backend role=security-expert task=T-003 action=handoff_to_code_critic`
-7. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の backend/security-expert が T-003 を務めます。認可漏れを点検します。`
+7. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の backend/security-expert が「認可漏れ点検」を務めます。認可漏れを点検します。`
 
 ### Gate Checks
 - Backend Security Gate
@@ -232,7 +233,7 @@ warnings:
 5. documentation-guild/adr-manager -> documentation-guild/tech-writer
 6. coordinator が warning を `resolved` に更新
 7. handoff memo 先頭行例: `DECLARATION team=protocol-team role=interaction-auditor task=T-004 action=raise_protocol_warning`
-8. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の protocol-team/interaction-auditor が T-004 を務めます。通信警告の一次監査を行います。`
+8. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の protocol-team/interaction-auditor が「通信警告の一次監査」を務めます。監査を行います。`
 
 ### Gate Checks
 - Protocol Gate
@@ -292,7 +293,7 @@ notes: poc_result: pending
 6. code-critic -> qa-review-guild/test-architect
 7. qa-review-guild/test-architect -> coordinator
 8. handoff memo 先頭行例: `DECLARATION team=innovation-research-guild role=poc-agent task=T-005 action=handoff_to_adr_manager`
-9. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の innovation-research-guild/trend-researcher が T-005 を務めます。候補技術を調査します。`
+9. 開始時口上例: `【稼働口上】殿、ただいま 足軽 の innovation-research-guild/trend-researcher が「候補技術調査」を務めます。候補技術を調査します。`
 
 ### Gate Checks
 - Research Gate
@@ -351,7 +352,7 @@ notes: Role gap triage required
 5. accepted の場合: coordinator -> 実装ロール（role_split/new_role反映）
 6. 実装完了後: coordinator が candidate を `implemented` に更新
 7. handoff memo 先頭行例: `DECLARATION team=coordinator role=coordinator task=T-006 action=triage_role_gap_candidate`
-8. 開始時口上例: `【稼働口上】殿、ただいま 家老 の coordinator/coordinator が T-006 を務めます。不足ロール候補を裁定します。`
+8. 開始時口上例: `【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「不足ロール候補の裁定」を務めます。候補を裁定します。`
 
 ### Gate Checks
 - Role Gap Review Gate

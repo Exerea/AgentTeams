@@ -21,7 +21,8 @@
 15. 研究/セキュリティ/UX の一次証跡は `notes/handoffs/warnings` に記録する。
 16. `done` 前に `validate-secrets` の最新成功を確認する。
 17. 稼働宣言を作業開始時・ロール切替時・Gate判断時（停止/再開/完了確定）に明示する。  
-口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が <task> を務めます。<要旨>`  
+口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`  
+`task_id` のみ（例: `T-310` だけ）の口上は禁止する。  
 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`  
 `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 18. `handoffs.memo` の先頭行は稼働宣言にする。  

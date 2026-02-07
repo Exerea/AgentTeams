@@ -43,10 +43,11 @@ bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
 - `bootstrap-agent-teams` は `.github/workflows/agentteams-validate.yml` を含む運用一式を展開する
 
 ## 稼働宣言プロトコル
-- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が <task> を務めます。<要旨>`
+- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 - 機械可読フォーマット: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
 - `chat`: 作業開始時・ロール切替時・Gate判断時に口上 + 宣言を行う
+- 口上では `T-310` のような `task_id` 単独表現を禁止し、作業タイトルを必ず伝える
 - `task`: `handoffs.memo` の先頭行に宣言を記録する
 - 例: `DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic`
 

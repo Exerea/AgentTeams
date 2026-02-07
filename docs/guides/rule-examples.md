@@ -111,7 +111,7 @@ memo: DECLARATION team=backend role=security-expert task=T-110 action=handoff_to
 ```
 ### Bad Example
 ```text
-セキュリティ見ました。次どうぞ。
+T-310をやります。次どうぞ。
 memo: handoff done
 ```
 ### Why Bad

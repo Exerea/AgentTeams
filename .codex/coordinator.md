@@ -8,8 +8,8 @@
 
 ## Ingress Default
 - ユーザー依頼は文言に `coordinatorとして処理して` がなくても coordinator が受理する。
-- 受理直後に殿様向けの日本語口上を行う。  
-`【稼働口上】殿、ただいま 家老 の coordinator/coordinator が N/A を務めます。受理と分解を開始します。`
+- 受理直後に殿様向けの日本語口上を行う（`task_id` のみは不可）。  
+`【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「依頼受理とタスク分解」を務めます。受理と分解を開始します。`
 - 受理直後に次の機械可読宣言を行う。  
 `DECLARATION team=coordinator role=coordinator task=<task_id|N/A> action=intake`
 - 宣言は作業開始時・ロール切替時・Gate判断時（停止/再開/完了確定）・handoff時に必須。
@@ -112,8 +112,8 @@
 4. `ux_review_required=true` は `frontend/ux-specialist` handoff を必須とする。
 5. `memo` は宣言行で開始する。  
 `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
-6. `chat` では宣言前に口上を行う。  
-`【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が <task> を務めます。<要旨>`
+6. `chat` では宣言前に口上を行う（`task_id` だけでなく作業タイトルを必須記載）。  
+`【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 
 ## Index Ownership Rules
 - `_index.yaml` の更新は coordinator のみ行う。

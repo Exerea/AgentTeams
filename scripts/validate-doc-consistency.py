@@ -106,6 +106,19 @@ def main() -> int:
     for key, needles in roleplay_refs.items():
         require_all(content[key], needles, files[key], errors)
 
+    # Roleplay declaration must be title-first, not task-id-only
+    title_first_refs = {
+        "agents": ["task_id", "「<task_title>」"],
+        "coordinator": ["「<task_title>」", "task_id"],
+        "common_ops": ["「<task_title>」", "task_id"],
+        "spec": ["「<task_title>」", "task_id"],
+        "readme": ["「<task_title>」", "task_id"],
+        "protocol": ["「<task_title>」", "task_id"],
+        "scenarios": ["「<task_title>」", "task_id"],
+    }
+    for key, needles in title_first_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
     # Secret scan references
     secret_refs = {
         "agents": ["validate-secrets"],
