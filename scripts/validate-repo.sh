@@ -21,6 +21,7 @@ done
 
 "$py_bin" ./scripts/validate-doc-consistency.py
 "$py_bin" ./scripts/validate-scenarios-structure.py
+"$py_bin" ./scripts/validate-rule-examples-coverage.py
 "$py_bin" ./scripts/detect-role-gaps.py
 "$py_bin" ./scripts/validate-role-gap-review.py
 bash ./scripts/validate-secrets.sh

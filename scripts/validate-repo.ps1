@@ -39,6 +39,7 @@ try {
 
   Invoke-PythonScript -ScriptPath .\scripts\validate-doc-consistency.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-scenarios-structure.py
+  Invoke-PythonScript -ScriptPath .\scripts\validate-rule-examples-coverage.py
   Invoke-PythonScript -ScriptPath .\scripts\detect-role-gaps.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-role-gap-review.py
 

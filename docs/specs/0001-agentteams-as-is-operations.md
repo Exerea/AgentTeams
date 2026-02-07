@@ -10,6 +10,10 @@ v2.6b では稼働宣言プロトコルを追加し、`chat + handoff memo` で�
 - coordinator 依頼文は同ガイドの `User Request` テンプレを利用する
 - `coordinatorとして処理して` は推奨文であり必須ではない
 
+## ルール判定例正本
+- `docs/guides/rule-examples.md`
+- 23ルールの Good/Bad/Detection を 1:1 で管理する
+
 ## フォルダ構成（主要）
 - `.codex/AGENTS.md`
 - `.codex/coordinator.md`
@@ -34,6 +38,7 @@ v2.6b では稼働宣言プロトコルを追加し、`chat + handoff memo` で�
 - `scripts/validate-task-state.sh`
 - `scripts/validate-doc-consistency.py`
 - `scripts/validate-scenarios-structure.py`
+- `scripts/validate-rule-examples-coverage.py`
 - `scripts/detect-role-gaps.py`
 - `scripts/validate-role-gap-review.py`
 - `scripts/validate-secrets.ps1`
@@ -113,6 +118,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-task-stat
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.ps1
 python .\scripts\detect-role-gaps.py
 python .\scripts\validate-role-gap-review.py
+python .\scripts\validate-rule-examples-coverage.py
 ```
 
 ```bash
@@ -121,6 +127,7 @@ bash ./scripts/validate-task-state.sh ./.codex/states/TASK-00110-member-tier-mig
 bash ./scripts/validate-secrets.sh
 python3 ./scripts/detect-role-gaps.py
 python3 ./scripts/validate-role-gap-review.py
+python3 ./scripts/validate-rule-examples-coverage.py
 ```
 
 ## テストケース（v2.6b）
@@ -134,6 +141,7 @@ python3 ./scripts/validate-role-gap-review.py
 8. `validate-secrets` 失敗で `done` を確定しない
 9. `in_progress/in_review/done` task で宣言付き handoff がない場合 validate 失敗
 10. 宣言に `team/role/task/action` のいずれか欠落がある場合 validate 失敗
+11. 23ルールのいずれかで Good/Bad/Detection/Related Files 欠落がある場合 coverage validate 失敗
 
 ## 前提
 - `_index.yaml` と `_role-gap-index.yaml` の更新者は coordinator のみ

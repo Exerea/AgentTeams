@@ -2,6 +2,7 @@
 
 ## Purpose
 依頼文がどのように task へ分解され、どのロールへ伝播し、どの Gate で判定されるかを固定化する。
+該当ルールの判定例は `docs/guides/rule-examples.md` を参照する。
 
 ## Common Rules
 - 依頼は coordinator が受理し、`Goal/Constraints/Acceptance` に分解する。

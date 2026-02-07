@@ -3,6 +3,9 @@
 ## Mission
 ユーザー要求を分解し、適切なロールへ task を割り当て、Gate 充足を確認して完了判定する。
 
+## Interpretation Priority
+- ルール解釈に迷った場合は `docs/guides/rule-examples.md` を優先参照する。
+
 ## Ingress Default
 - ユーザー依頼は文言に `coordinatorとして処理して` がなくても coordinator が受理する。
 - 受理直後に次の宣言を行う。  

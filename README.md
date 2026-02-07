@@ -29,6 +29,7 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 
 ## クイックスタート
 - 運用シナリオ正本: `docs/guides/request-routing-scenarios.md`
+- ルール判定例正本: `docs/guides/rule-examples.md`
 - 依頼文テンプレは `User Request` をコピーして使う
 - `coordinatorとして処理して` は推奨文であり必須ではない（coordinator がデフォルト受理）
 
@@ -100,18 +101,20 @@ bash ./scripts/validate-repo.sh
 4. `validate-task-linux`
 5. `validate-doc-consistency`
 6. `validate-scenarios-structure`
-7. `detect-role-gaps`
-8. `validate-role-gap-review`
-9. `validate-secrets-linux`
+7. `validate-rule-examples-coverage`
+8. `detect-role-gaps`
+9. `validate-role-gap-review`
+10. `validate-secrets-linux`
 
 ## Branch Protection
 1. GitHub `Settings -> Branches -> Add rule` で `main` ルールを作成
 2. `Require status checks to pass before merging` を有効化
-3. 上記9チェックを Required checks に登録
+3. 上記10チェックを Required checks に登録
 
 ## 運用メモ
 - role gap 候補の状態遷移は `open -> triaged -> accepted/rejected -> implemented`
 - `accepted` は `adr_ref` 必須
 - `implemented` は `decision_note` に変更証跡必須
 - `_index.yaml` と `_role-gap-index.yaml` は coordinator 専任更新
+- ルール解釈が曖昧な場合は `docs/guides/rule-examples.md` の Good/Bad を優先する
 - `detect-role-gaps.py` は新規候補や内容変化がある場合のみ `_role-gap-index.yaml` を更新する

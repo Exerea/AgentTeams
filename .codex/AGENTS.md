@@ -36,9 +36,11 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 - 状態正本: `.codex/states/_index.yaml`, `.codex/states/TASK-*.yaml`
 - ロール不足管理: `.codex/states/_role-gap-index.yaml`, `.codex/role-gap-rules.yaml`
 - 通信規約: `docs/guides/communication-protocol.md`
+- ルール判定例: `docs/guides/rule-examples.md`
 - API正本: `docs/api/openapi.yaml`
 
 ## Escalation
 - 担当外作業や競合判断は coordinator にエスカレーションする。
 - ADR未整備の重要判断は先に ADR 起票を行う。
 - 通信プロトコル違反は `protocol-team/interaction-auditor` が検知し、coordinator が最終決裁する。
+- ルール解釈に迷った場合は `docs/guides/rule-examples.md` を優先参照する。

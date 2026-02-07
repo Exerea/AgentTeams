@@ -23,6 +23,8 @@ def main() -> int:
         "spec": repo_root / "docs" / "specs" / "0001-agentteams-as-is-operations.md",
         "readme": repo_root / "README.md",
         "protocol": repo_root / "docs" / "guides" / "communication-protocol.md",
+        "scenarios": repo_root / "docs" / "guides" / "request-routing-scenarios.md",
+        "rule_examples": repo_root / "docs" / "guides" / "rule-examples.md",
         "workflow": repo_root / ".github" / "workflows" / "agentteams-validate.yml",
         "role_gap_rules": repo_root / ".codex" / "role-gap-rules.yaml",
         "role_gap_index": repo_root / ".codex" / "states" / "_role-gap-index.yaml",
@@ -116,6 +118,19 @@ def main() -> int:
         for needle in needles:
             if needle.lower() not in src_lower:
                 errors.append(f"{path.as_posix()} must include '{needle}'")
+
+    # Rule examples references
+    rule_example_refs = {
+        "agents": ["docs/guides/rule-examples.md"],
+        "coordinator": ["docs/guides/rule-examples.md"],
+        "spec": ["docs/guides/rule-examples.md"],
+        "readme": ["docs/guides/rule-examples.md"],
+        "scenarios": ["docs/guides/rule-examples.md"],
+        "workflow": ["validate-rule-examples-coverage"],
+        "rule_examples": ["## R-01", "## R-23", "### Good Example", "### Bad Example"],
+    }
+    for key, needles in rule_example_refs.items():
+        require_all(content[key], needles, files[key], errors)
 
     # Spec heading check
     if "Task 契約（v2.6b）" not in content["spec"]:
