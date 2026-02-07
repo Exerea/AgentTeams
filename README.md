@@ -1,6 +1,6 @@
 # AgentTeams
 
-Template Repo 前提で各プロジェクトに同梱して使う、マルチAIエージェント運用構成の `v2.6a` です。  
+Template Repo 前提で各プロジェクトに同梱して使う、マルチAIエージェント運用構成の `v2.6b` です。  
 基盤は `Atomic States + Protocol Team + Documentation Guild` を維持し、`Tech Specialist / QA&Review / Innovation&Research`、`backend/security-expert`、`frontend/ux-specialist`、Secret Leakage 最終保証、Role Gap 半自動検知を統合しています。
 
 ## 目的
@@ -15,7 +15,7 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 - ロール不足管理: `.codex/states/_role-gap-index.yaml`, `.codex/role-gap-rules.yaml`
 - 共通運用: `shared/skills/common-ops.md`
 
-## 主要方針（v2.6a）
+## 主要方針（v2.6b）
 1. `frontend/code-reviewer` は後継を `qa-review-guild/code-critic` とする
 2. コード変更 task は `qa_review_required=true` を標準適用
 3. 外部公開API/認証認可/PII変更は `backend_security_required=true` を標準適用
@@ -25,10 +25,18 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 7. `research_track_enabled=true` の採用判断は `poc_result + ADR承認` を必須
 8. `detect-role-gaps` は候補検知、`validate-role-gap-review` は放置/証跡不備をブロック
 9. `validate-secrets` 失敗時は `done` 不可（Secret Scan Gate）
+10. 稼働宣言 `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を `chat + handoff memo` で必須化
 
 ## クイックスタート
 - 運用シナリオ正本: `docs/guides/request-routing-scenarios.md`
 - 依頼文テンプレは `User Request` をコピーして使う
+- `coordinatorとして処理して` は推奨文であり必須ではない（coordinator がデフォルト受理）
+
+## 稼働宣言プロトコル
+- 宣言フォーマット: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+- `chat`: 作業開始時とロール切替時に宣言する
+- `task`: `handoffs.memo` の先頭行に宣言を記録する
+- 例: `DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic`
 
 ## ローカル検証
 ### Index
@@ -96,4 +104,3 @@ bash ./scripts/validate-repo.sh
 - `accepted` は `adr_ref` 必須
 - `implemented` は `decision_note` に変更証跡必須
 - `_index.yaml` と `_role-gap-index.yaml` は coordinator 専任更新
-

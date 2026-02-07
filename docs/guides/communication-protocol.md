@@ -14,6 +14,16 @@
 - `at`
 - `memo`
 
+## Declaration Format
+- `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+- 適用面:
+- `chat`: 作業開始時とロール切替時に宣言する
+- `task`: `handoffs[].memo` の先頭行を宣言にする
+- `notes`: 主要判断時は任意で宣言を追記する
+- 例:
+- `DECLARATION team=coordinator role=coordinator task=T-110 action=assign_backend_security_review`
+- `DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic`
+
 ## Required Warning Fields
 - `id`
 - `level` (`warning | error`)
@@ -46,3 +56,4 @@
 4. 規約変更は `protocol-team/protocol-architect` 提案後、coordinator 承認で反映する。
 5. 指示書更新は `protocol-team/prompt-optimizer` が対象ロール限定で実施する。
 6. `qa_review_required=true` の task は `qa-review-guild/code-critic` と `qa-review-guild/test-architect` 完了前にクローズしない。
+7. `status in (in_progress, in_review, done)` の task は、宣言フォーマットを含む handoff 証跡を最低1件持つ。

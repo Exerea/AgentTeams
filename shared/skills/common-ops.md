@@ -20,6 +20,10 @@
 14. `warnings.status=open` が残る task は `done` にしない。
 15. 研究/セキュリティ/UX の一次証跡は `notes/handoffs/warnings` に記録する。
 16. `done` 前に `validate-secrets` の最新成功を確認する。
+17. 稼働宣言を作業開始時・ロール切替時に明示する。  
+`DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+18. `handoffs.memo` の先頭行は稼働宣言にする。  
+例: `DECLARATION team=backend role=api-architect task=T-110 action=handoff_to_security`
 
 ## UX Evidence Format
 - `notes` に `ux_checklist`（pass/needs_fix と根拠）を残す。
@@ -36,4 +40,3 @@
 - `level`: `warning | error`
 - `status`: `open | triaged | resolved`
 - `code`: `PROTO_SCHEMA_MISMATCH | PROTO_FIELD_CASE_MISMATCH | PROTO_REQUIRED_FIELD_MISSING | PROTO_UNEXPECTED_FIELD | PROTO_HANDOFF_CONTEXT_MISSING`
-

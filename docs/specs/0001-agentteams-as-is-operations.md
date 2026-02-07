@@ -1,13 +1,14 @@
-# AgentTeams 現行構成と命令連携・運用サマリー（As-Is v2.6a）
+# AgentTeams 現行構成と命令連携・運用サマリー（As-Is v2.6b）
 
 ## Summary
 このリポジトリは Template Repo として各案件に同梱し、coordinator が task 分解とロール割当を行う。  
 状態正本は `.codex/states/` で、`_index.yaml` は全体俯瞰、`TASK-*.yaml` は実務詳細を管理する。  
-v2.6a では UX心理学チェックを `frontend/ux-specialist` へ統合し、`UX Gate` を追加した。
+v2.6b では稼働宣言プロトコルを追加し、`chat + handoff memo` でアクティブロールの可視化を必須化した。
 
 ## 運用シナリオ正本
 - `docs/guides/request-routing-scenarios.md`
 - coordinator 依頼文は同ガイドの `User Request` テンプレを利用する
+- `coordinatorとして処理して` は推奨文であり必須ではない
 
 ## フォルダ構成（主要）
 - `.codex/AGENTS.md`
@@ -51,7 +52,13 @@ v2.6a では UX心理学チェックを `frontend/ux-specialist` へ統合し、
 - handoff は `from/to/at/memo` で記録
 - warning は `warnings[]` へ記録
 
-## Task 契約（v2.6a）
+## 稼働宣言プロトコル
+- 宣言フォーマット: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+- `chat`: 作業開始時とロール切替時に宣言する
+- `task`: `handoffs.memo` の先頭行に宣言を記録する
+- `status in (in_progress, in_review, done)` の task は宣言付き handoff 証跡を最低1件持つ
+
+## Task 契約（v2.6b）
 ### 必須トップレベルキー
 - `id`
 - `title`
@@ -116,7 +123,7 @@ python3 ./scripts/detect-role-gaps.py
 python3 ./scripts/validate-role-gap-review.py
 ```
 
-## テストケース（v2.6a）
+## テストケース（v2.6b）
 1. `frontend/ux-specialist` に `instructions.md` と `skills/*.md` が存在
 2. `local_flags.ux_review_required` を持つ task が validate 成功
 3. `local_flags.ux_review_required` 欠落で validate 失敗
@@ -125,9 +132,10 @@ python3 ./scripts/validate-role-gap-review.py
 6. `warnings.status=open` の task は `done` で validate 失敗
 7. `detect-role-gaps` と `validate-role-gap-review` が CI で起動
 8. `validate-secrets` 失敗で `done` を確定しない
+9. `in_progress/in_review/done` task で宣言付き handoff がない場合 validate 失敗
+10. 宣言に `team/role/task/action` のいずれか欠落がある場合 validate 失敗
 
 ## 前提
 - `_index.yaml` と `_role-gap-index.yaml` の更新者は coordinator のみ
 - `task_file_path` 以外の task ファイル更新は禁止
 - CI 必須チェックを通らない変更はマージ不可
-

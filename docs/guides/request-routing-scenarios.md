@@ -5,15 +5,18 @@
 
 ## Common Rules
 - 依頼は coordinator が受理し、`Goal/Constraints/Acceptance` に分解する。
+- `coordinatorとして処理して` は推奨文であり必須ではない。文言がなくても coordinator が受理する。
 - 実務ロールは `task_file_path` で渡された `TASK-*.yaml` のみを更新する。
 - `_index.yaml` と `_role-gap-index.yaml` の更新は coordinator 専任。
 - handoff は `from/to/at/memo` を必須記録する。
+- handoff の `memo` 先頭行は宣言フォーマットを必須記録する。  
+`DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 - `done` は各 Gate 条件を満たした場合のみ確定する。
 
 ## Scenario 1: 機能追加（UI導線あり）
 ### User Request
 ```text
-会員ランク画面を追加したい。coordinatorとして処理して。
+会員ランク画面を追加したい。
 Goal: 画面追加とAPI連携を実装する
 Constraints: 既存デザイン規約を守る
 Acceptance: UI/API/文書が一致し、回帰がない
@@ -49,6 +52,7 @@ local_flags:
 6. documentation-guild/tech-writer -> qa-review-guild/code-critic
 7. qa-review-guild/code-critic -> qa-review-guild/test-architect
 8. qa-review-guild/test-architect -> coordinator
+9. handoff memo 先頭行例: `DECLARATION team=frontend role=ux-specialist task=T-001 action=handoff_to_backend_api`
 
 ### Gate Checks
 - UX Gate: `ux_review_required=true` は `frontend/ux-specialist` 完了前に `done` 不可
@@ -105,6 +109,7 @@ local_flags:
 3. backend/api-architect -> qa-review-guild/code-critic
 4. qa-review-guild/code-critic -> qa-review-guild/test-architect
 5. qa-review-guild/test-architect -> coordinator
+6. handoff memo 先頭行例: `DECLARATION team=backend role=api-architect task=T-002 action=handoff_to_code_critic`
 
 ### Gate Checks
 - QA Gate
@@ -125,7 +130,7 @@ bash ./scripts/validate-task-state.sh ./.codex/states/TASK-xxxxx-bugfix.yaml
 ## Scenario 3: バックエンドセキュリティ対応
 ### User Request
 ```text
-認証APIの脆弱性を修正したい。coordinatorとして処理して。
+認証APIの脆弱性を修正したい。
 Goal: 認可漏れを修正する
 Constraints: 外部API互換を維持
 Acceptance: セキュリティレビューとQAを通過
@@ -158,6 +163,7 @@ local_flags:
 3. backend/security-expert -> qa-review-guild/code-critic
 4. qa-review-guild/code-critic -> qa-review-guild/test-architect
 5. qa-review-guild/test-architect -> coordinator
+6. handoff memo 先頭行例: `DECLARATION team=backend role=security-expert task=T-003 action=handoff_to_code_critic`
 
 ### Gate Checks
 - Backend Security Gate
@@ -218,6 +224,7 @@ warnings:
 4. prompt-optimizer -> documentation-guild/adr-manager
 5. documentation-guild/adr-manager -> documentation-guild/tech-writer
 6. coordinator が warning を `resolved` に更新
+7. handoff memo 先頭行例: `DECLARATION team=protocol-team role=interaction-auditor task=T-004 action=raise_protocol_warning`
 
 ### Gate Checks
 - Protocol Gate
@@ -276,6 +283,7 @@ notes: poc_result: pending
 5. tech-specialist-guild/language-expert -> qa-review-guild/code-critic
 6. code-critic -> qa-review-guild/test-architect
 7. qa-review-guild/test-architect -> coordinator
+8. handoff memo 先頭行例: `DECLARATION team=innovation-research-guild role=poc-agent task=T-005 action=handoff_to_adr_manager`
 
 ### Gate Checks
 - Research Gate
@@ -333,6 +341,7 @@ notes: Role gap triage required
 4. adr-manager -> coordinator（accepted/rejected 決裁）
 5. accepted の場合: coordinator -> 実装ロール（role_split/new_role反映）
 6. 実装完了後: coordinator が candidate を `implemented` に更新
+7. handoff memo 先頭行例: `DECLARATION team=coordinator role=coordinator task=T-006 action=triage_role_gap_candidate`
 
 ### Gate Checks
 - Role Gap Review Gate
@@ -353,4 +362,3 @@ python .\scripts\validate-role-gap-review.py
 python3 ./scripts/detect-role-gaps.py
 python3 ./scripts/validate-role-gap-review.py
 ```
-

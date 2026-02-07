@@ -84,6 +84,8 @@ backend_security_role = "backend/security-expert"
 ux_specialist_role = "frontend/ux-specialist"
 research_roles = {"innovation-research-guild/trend-researcher", "innovation-research-guild/poc-agent"}
 tech_prefix = "tech-specialist-guild/"
+declaration_pattern = re.compile(r"^DECLARATION\s+team=\S+\s+role=\S+\s+task=(?:T-\d+|N/A)\s+action=\S+(?:\s+\|\s+.*)?$")
+statuses_require_declaration = {"in_progress", "in_review", "done"}
 
 errors = []
 
@@ -107,6 +109,7 @@ if extra_top:
 
 section = None
 status = ""
+task_id = ""
 assignee = ""
 notes = ""
 adr_ref_count = 0
@@ -118,6 +121,7 @@ in_handoff = False
 handoff_keys = set()
 handoff_from_values = []
 handoff_to_values = []
+handoff_memo_values = []
 
 warning_idx = 0
 in_warning = False
@@ -154,6 +158,10 @@ for ln in lines:
             m = re.match(r"^status\s*:\s*(.+)$", ln)
             if m:
                 status = m.group(1).strip()
+        elif key == "id":
+            m = re.match(r"^id\s*:\s*(.+)$", ln)
+            if m:
+                task_id = m.group(1).strip()
         elif key == "assignee":
             m = re.match(r"^assignee\s*:\s*(.+)$", ln)
             if m:
@@ -229,6 +237,8 @@ for ln in lines:
                     handoff_from_values.append(hv)
                 if hk == "to":
                     handoff_to_values.append(hv)
+                if hk == "memo":
+                    handoff_memo_values.append(hv)
             continue
         m_h = re.match(r"^\s{4}([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+)$", ln)
         if in_handoff and m_h:
@@ -239,6 +249,8 @@ for ln in lines:
                 handoff_from_values.append(hv)
             if hk == "to":
                 handoff_to_values.append(hv)
+            if hk == "memo":
+                handoff_memo_values.append(hv)
         continue
 
 if section == "handoffs" and in_handoff:
@@ -264,6 +276,16 @@ has_backend_security = assignee == backend_security_role or backend_security_rol
 has_ux_specialist = assignee == ux_specialist_role or ux_specialist_role in all_handoff_roles
 has_tech_specialist = assignee.startswith(tech_prefix) or any(r.startswith(tech_prefix) for r in all_handoff_roles)
 has_research_role = assignee in research_roles or any(r in research_roles for r in all_handoff_roles)
+has_declaration_evidence = any(declaration_pattern.match(memo) for memo in handoff_memo_values)
+invalid_declarations = [memo for memo in handoff_memo_values if memo.startswith("DECLARATION") and not declaration_pattern.match(memo)]
+
+if invalid_declarations:
+    errors.append("handoff memo contains invalid DECLARATION format")
+
+if status in statuses_require_declaration and not has_declaration_evidence:
+    errors.append(
+        f"task '{task_id or 'N/A'}' with status '{status}' requires at least one handoff memo declaration"
+    )
 
 if status == "done" and warning_open_count > 0:
     errors.append("task cannot be done while warnings.status=open exists")

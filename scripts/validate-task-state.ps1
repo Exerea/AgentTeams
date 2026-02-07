@@ -33,6 +33,8 @@ $backendSecurityRole = 'backend/security-expert'
 $uxSpecialistRole = 'frontend/ux-specialist'
 $techRolePrefix = 'tech-specialist-guild/'
 $researchRoles = @('innovation-research-guild/trend-researcher', 'innovation-research-guild/poc-agent')
+$statusesRequireDeclaration = @('in_progress', 'in_review', 'done')
+$declarationPattern = '^DECLARATION\s+team=\S+\s+role=\S+\s+task=(?:T-\d+|N/A)\s+action=\S+(?:\s+\|\s+.*)?$'
 
 $hasErrors = $false
 $name = Split-Path -Leaf $Path
@@ -66,6 +68,7 @@ if ($extraTop.Count -gt 0) {
 }
 
 $section = ''
+$taskId = ''
 $status = ''
 $assignee = ''
 $notes = ''
@@ -79,6 +82,7 @@ $inHandoff = $false
 $handoffKeys = New-Object System.Collections.Generic.List[string]
 $handoffFromValues = New-Object System.Collections.Generic.List[string]
 $handoffToValues = New-Object System.Collections.Generic.List[string]
+$handoffMemoValues = New-Object System.Collections.Generic.List[string]
 
 $warningIndex = 0
 $inWarning = $false
@@ -133,6 +137,10 @@ function Validate-Warning {
 foreach ($line in $lines) {
   $mTop = [regex]::Match($line, '^([A-Za-z_][A-Za-z0-9_]*)\s*:')
   if ($mTop.Success) {
+    if ($mTop.Groups[1].Value -eq 'id') {
+      $mInlineId = [regex]::Match($line, '^id\s*:\s*(.+)$')
+      if ($mInlineId.Success) { $taskId = $mInlineId.Groups[1].Value.Trim() }
+    }
     if ($mTop.Groups[1].Value -eq 'status') {
       $mInlineStatus = [regex]::Match($line, '^status\s*:\s*(.+)$')
       if ($mInlineStatus.Success) { $status = $mInlineStatus.Groups[1].Value.Trim() }
@@ -232,6 +240,7 @@ foreach ($line in $lines) {
         if (-not $handoffKeys.Contains($k)) { $handoffKeys.Add($k) }
         if ($k -eq 'from') { $handoffFromValues.Add($v) }
         if ($k -eq 'to') { $handoffToValues.Add($v) }
+        if ($k -eq 'memo') { $handoffMemoValues.Add($v) }
       }
       continue
     }
@@ -241,6 +250,7 @@ foreach ($line in $lines) {
       if (-not $handoffKeys.Contains($k)) { $handoffKeys.Add($k) }
       if ($k -eq 'from') { $handoffFromValues.Add($v) }
       if ($k -eq 'to') { $handoffToValues.Add($v) }
+      if ($k -eq 'memo') { $handoffMemoValues.Add($v) }
     }
     continue
   }
@@ -279,6 +289,19 @@ $hasBackendSecurityEvidence = (($assignee -eq $backendSecurityRole) -or ($allHan
 $hasUxSpecialistEvidence = (($assignee -eq $uxSpecialistRole) -or ($allHandoffRoles -contains $uxSpecialistRole))
 $hasTechSpecialist = ($assignee.StartsWith($techRolePrefix) -or (($allHandoffRoles | Where-Object { $_.StartsWith($techRolePrefix) }).Count -gt 0))
 $hasResearchRole = (($researchRoles -contains $assignee) -or (($allHandoffRoles | Where-Object { $_ -in $researchRoles }).Count -gt 0))
+$hasDeclarationEvidence = (($handoffMemoValues | Where-Object { $_ -match $declarationPattern }).Count -gt 0)
+$invalidDeclarations = @($handoffMemoValues | Where-Object { $_ -match '^DECLARATION\b' -and $_ -notmatch $declarationPattern })
+
+if ($invalidDeclarations.Count -gt 0) {
+  Write-Error 'handoff memo contains invalid DECLARATION format'
+  $hasErrors = $true
+}
+
+if ($status -in $statusesRequireDeclaration -and -not $hasDeclarationEvidence) {
+  if (-not $taskId) { $taskId = 'N/A' }
+  Write-Error "task '$taskId' with status '$status' requires at least one handoff memo declaration"
+  $hasErrors = $true
+}
 
 if ($status -eq 'done' -and $warningOpenCount -gt 0) {
   Write-Error 'task cannot be done while warnings.status=open exists'

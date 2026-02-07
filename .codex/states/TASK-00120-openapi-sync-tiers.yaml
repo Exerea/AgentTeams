@@ -25,11 +25,11 @@ handoffs:
   - from: backend/security-expert
     to: documentation-guild/api-spec-owner
     at: 2026-02-07T02:45:00Z
-    memo: Securityレビュー後に OpenAPI 同期を依頼。
+    memo: DECLARATION team=backend role=security-expert task=T-120 action=handoff_to_api_spec_owner | Securityレビュー後に OpenAPI 同期を依頼。
   - from: documentation-guild/api-spec-owner
     to: documentation-guild/tech-writer
     at: 2026-02-07T03:00:00Z
-    memo: /api/v1/tiers 仕様更新済み。README と図更新を依頼。
+    memo: DECLARATION team=documentation-guild role=api-spec-owner task=T-120 action=handoff_to_tech_writer | /api/v1/tiers 仕様更新済み。README と図更新を依頼。
 notes: docs/api/openapi.yaml に /api/v1/tiers を反映済み。互換性確認中。
 updated_at: 2026-02-07T03:00:00Z
 

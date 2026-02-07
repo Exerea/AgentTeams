@@ -22,6 +22,7 @@ def main() -> int:
         "coordinator": repo_root / ".codex" / "coordinator.md",
         "spec": repo_root / "docs" / "specs" / "0001-agentteams-as-is-operations.md",
         "readme": repo_root / "README.md",
+        "protocol": repo_root / "docs" / "guides" / "communication-protocol.md",
         "workflow": repo_root / ".github" / "workflows" / "agentteams-validate.yml",
         "role_gap_rules": repo_root / ".codex" / "role-gap-rules.yaml",
         "role_gap_index": repo_root / ".codex" / "states" / "_role-gap-index.yaml",
@@ -76,6 +77,17 @@ def main() -> int:
         path = files[key]
         require_all(src, ["task_file_path", "_index.yaml"], path, errors)
 
+    # Declaration protocol references
+    declaration_refs = {
+        "agents": ["DECLARATION", "team=", "role=", "task=", "action="],
+        "coordinator": ["DECLARATION", "team=", "role=", "task=", "action="],
+        "spec": ["DECLARATION", "team=", "role=", "task=", "action="],
+        "readme": ["DECLARATION", "team=", "role=", "task=", "action="],
+        "protocol": ["DECLARATION", "team=", "role=", "task=", "action="],
+    }
+    for key, needles in declaration_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
     # Secret scan references
     secret_refs = {
         "agents": ["validate-secrets"],
@@ -106,8 +118,8 @@ def main() -> int:
                 errors.append(f"{path.as_posix()} must include '{needle}'")
 
     # Spec heading check
-    if "Task 契約（v2.6a）" not in content["spec"]:
-        errors.append(f"{files['spec'].as_posix()} must include heading: Task 契約（v2.6a）")
+    if "Task 契約（v2.6b）" not in content["spec"]:
+        errors.append(f"{files['spec'].as_posix()} must include heading: Task 契約（v2.6b）")
 
     if errors:
         for err in errors:
@@ -120,4 +132,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
