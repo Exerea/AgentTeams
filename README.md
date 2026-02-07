@@ -1,100 +1,99 @@
 # AgentTeams
 
-Template Repo 前提で各プロジェクトに内包して使う、マルチAIエージェント運用構成の `v2.3` です。  
-基盤は `Atomic States + Protocol Team + Documentation Guild` を維持しつつ、`Tech Specialist / QA&Review / Innovation&Research` に加えて `backend/security-expert` を追加しています。
+Template Repo 前提で各プロジェクトに同梱して使う、マルチAIエージェント運用構成の `v2.6a` です。  
+基盤は `Atomic States + Protocol Team + Documentation Guild` を維持し、`Tech Specialist / QA&Review / Innovation&Research`、`backend/security-expert`、`frontend/ux-specialist`、Secret Leakage 最終保証、Role Gap 半自動検知を統合しています。
 
 ## 目的
-- 役割分離で実装品質・検証品質・技術更新を分離統治する
-- `1タスク=1ファイル` で並列運用時の誤更新を防ぐ
-- warning 起点の修復フローを標準化する
-- 新技術導入を `PoC成功 + ADR承認` で統制する
-- バックエンド脆弱性レビューを条件付き必須ゲートで統制する
+- 依頼の分解、実装、レビュー、文書更新を一貫運用する
+- `1 task = 1 file` で衝突を避ける
+- ゲートで品質を強制する（QA/Security/UX/Protocol/Secret/Role Gap）
 
-## 構成
-- 正本ルール: `.codex/AGENTS.md`
+## 正本ファイル
+- 憲法: `.codex/AGENTS.md`
 - 司令塔: `.codex/coordinator.md`
-- 状態管理: `.codex/states/_index.yaml`, `.codex/states/TASK-*.yaml`
-- 実装ロール: `.codex/roles/frontend/**`, `.codex/roles/backend/**`
-- ドキュメントロール: `.codex/roles/documentation-guild/**`
-- 通信ロール: `.codex/roles/protocol-team/**`
-- 技術ロール: `.codex/roles/tech-specialist-guild/**`
-- 品質ロール: `.codex/roles/qa-review-guild/**`
-- 研究ロール: `.codex/roles/innovation-research-guild/**`
+- 状態: `.codex/states/_index.yaml`, `.codex/states/TASK-*.yaml`
+- ロール不足管理: `.codex/states/_role-gap-index.yaml`, `.codex/role-gap-rules.yaml`
 - 共通運用: `shared/skills/common-ops.md`
-- 運用スクリプト: `scripts/`
 
-## 利用シナリオ集
-- 実運用の依頼テンプレ、task配賦、handoff時系列の正本: `docs/guides/request-routing-scenarios.md`
-- まず coordinator 依頼文を作る場合はこのガイドの `User Request` をコピーして使う
-
-## v2.3 の主要方針
-1. `frontend/code-reviewer` は即時に `qa-review-guild/code-critic` へ置換
-2. ゲート方針は `QA必須・Tech条件付き・R&D任意`
-3. 専門性は `target_stack.language/framework/infra` でルーティング
-4. R&D採用条件は `PoC成功 + ADR承認`
-5. `local_flags.backend_security_required=true` の task は `backend/security-expert` 完了前に `done` 禁止
-6. `backend_security_required=true` の標準条件は「外部公開API・認証/認可・PII変更」
-7. バックエンド実装レビュー順序は `Security先行 -> QA`
+## 主要方針（v2.6a）
+1. `frontend/code-reviewer` は後継を `qa-review-guild/code-critic` とする
+2. コード変更 task は `qa_review_required=true` を標準適用
+3. 外部公開API/認証認可/PII変更は `backend_security_required=true` を標準適用
+4. UI変更/導線変更/フォーム体験変更は `ux_review_required=true` を標準適用
+5. `ux_review_required=true` の task は `frontend/ux-specialist` 完了前に `done` 不可（UX Gate）
+6. `backend_security_required=true` の task は `backend/security-expert` 完了前に `done` 不可
+7. `research_track_enabled=true` の採用判断は `poc_result + ADR承認` を必須
+8. `detect-role-gaps` は候補検知、`validate-role-gap-review` は放置/証跡不備をブロック
+9. `validate-secrets` 失敗時は `done` 不可（Secret Scan Gate）
 
 ## クイックスタート
-### 状態検証
-PowerShell（index）:
+- 運用シナリオ正本: `docs/guides/request-routing-scenarios.md`
+- 依頼文テンプレは `User Request` をコピーして使う
 
+## ローカル検証
+### Index
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-states-index.ps1 -Path .\.codex\states\_index.yaml
 ```
-
-PowerShell（task）:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-task-state.ps1 -Path .\.codex\states\TASK-00110-member-tier-migration.yaml
-```
-
-Bash（index）:
-
 ```bash
 bash ./scripts/validate-states-index.sh ./.codex/states/_index.yaml
 ```
 
-Bash（task）:
-
+### Task
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-task-state.ps1 -Path .\.codex\states\TASK-00110-member-tier-migration.yaml
+```
 ```bash
 bash ./scripts/validate-task-state.sh ./.codex/states/TASK-00110-member-tier-migration.yaml
 ```
 
-### 他プロジェクトへ適用
-PowerShell:
-
+### Secret Scan
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-agent-teams.ps1 --target ..\your-project
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.ps1
 ```
-
-Bash:
-
 ```bash
-bash ./scripts/bootstrap-agent-teams.sh --target ../your-project
+bash ./scripts/validate-secrets.sh
 ```
 
-既存ファイルも上書きしたい場合は `--force` を追加します。
+### Role Gap
+```powershell
+python .\scripts\detect-role-gaps.py
+python .\scripts\validate-role-gap-review.py
+```
+```bash
+python3 ./scripts/detect-role-gaps.py
+python3 ./scripts/validate-role-gap-review.py
+```
 
-## 運用フロー例（トレンド起点）
-1. `innovation-research-guild/trend-researcher` が候補技術を提案
-2. `innovation-research-guild/poc-agent` が `poc_result` を記録
-3. `tech-specialist-guild` が互換性・性能・運用影響を評価
-4. `documentation-guild/adr-manager` が採用理由を ADR 化
-5. `qa-review-guild/code-critic` と `qa-review-guild/test-architect` が品質確認
-6. coordinator が `PoC成功 + ADR承認 + QA完了` を満たした task のみ実装開始を許可
+### All-in-one
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1
+```
+```bash
+bash ./scripts/validate-repo.sh
+```
 
-## 運用フロー例（バックエンド実装）
-1. `backend/api-architect` または `backend/db-specialist` が実装 task を進行
-2. `backend_security_required=true` の場合、`backend/security-expert` が先行レビュー
-3. セキュリティ完了後に `qa-review-guild/code-critic` と `qa-review-guild/test-architect` を実施
-4. coordinator が `Backend Security Gate + QA Gate` 充足を確認して `done` を確定
+## CI 必須チェック
+ワークフロー: `.github/workflows/agentteams-validate.yml`
 
-## 受け入れ確認
-- 新3ギルドの全ロールに `instructions.md` と `skills/*.md` が存在する
-- `backend/security-expert` ロールに `instructions.md` と `skills/*.md` が存在する
-- 全 `TASK-*.yaml` に `target_stack` と拡張 `local_flags`（`backend_security_required` 含む）が存在する
-- `validate-task-state` が `warnings` と新フラグ契約を検証できる
-- `qa_review_required=true` の task が QA未完了で `done` にならない運用ルールがある
-- `backend_security_required=true` の task が security未完了で `done` にならない運用ルールがある
+1. `validate-index-windows`
+2. `validate-index-linux`
+3. `validate-task-windows`
+4. `validate-task-linux`
+5. `validate-doc-consistency`
+6. `validate-scenarios-structure`
+7. `detect-role-gaps`
+8. `validate-role-gap-review`
+9. `validate-secrets-linux`
+
+## Branch Protection
+1. GitHub `Settings -> Branches -> Add rule` で `main` ルールを作成
+2. `Require status checks to pass before merging` を有効化
+3. 上記9チェックを Required checks に登録
+
+## 運用メモ
+- role gap 候補の状態遷移は `open -> triaged -> accepted/rejected -> implemented`
+- `accepted` は `adr_ref` 必須
+- `implemented` は `decision_note` に変更証跡必須
+- `_index.yaml` と `_role-gap-index.yaml` は coordinator 専任更新
+

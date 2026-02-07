@@ -17,7 +17,9 @@ local_flags:
   tech_specialist_required: false
   qa_review_required: false
   research_track_enabled: false
+
   backend_security_required: false
+  ux_review_required: false
 warnings: []
 handoffs:
   - from: backend/security-expert
@@ -30,3 +32,7 @@ handoffs:
     memo: /api/v1/tiers 仕様更新済み。README と図更新を依頼。
 notes: docs/api/openapi.yaml に /api/v1/tiers を反映済み。互換性確認中。
 updated_at: 2026-02-07T03:00:00Z
+
+
+
+

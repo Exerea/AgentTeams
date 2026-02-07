@@ -17,7 +17,7 @@ if (-not (Test-Path -LiteralPath $Path)) {
 $allowedStatuses = @('todo', 'in_progress', 'in_review', 'blocked', 'done')
 $requiredTopKeys = @('id', 'title', 'owner', 'assignee', 'status', 'target_stack', 'depends_on', 'adr_refs', 'local_flags', 'warnings', 'handoffs', 'notes', 'updated_at')
 $requiredTargetStackKeys = @('language', 'framework', 'infra')
-$requiredFlagKeys = @('major_decision_required', 'documentation_sync_required', 'tech_specialist_required', 'qa_review_required', 'research_track_enabled', 'backend_security_required')
+$requiredFlagKeys = @('major_decision_required', 'documentation_sync_required', 'tech_specialist_required', 'qa_review_required', 'research_track_enabled', 'backend_security_required', 'ux_review_required')
 $requiredWarningKeys = @('id', 'level', 'code', 'detected_by', 'source_role', 'target_role', 'detected_at', 'summary', 'status', 'resolution_task_ids', 'updated_at')
 $allowedWarningLevels = @('warning', 'error')
 $allowedWarningStatuses = @('open', 'triaged', 'resolved')
@@ -30,6 +30,7 @@ $allowedWarningCodes = @(
 )
 $qaRoles = @('qa-review-guild/code-critic', 'qa-review-guild/test-architect')
 $backendSecurityRole = 'backend/security-expert'
+$uxSpecialistRole = 'frontend/ux-specialist'
 $techRolePrefix = 'tech-specialist-guild/'
 $researchRoles = @('innovation-research-guild/trend-researcher', 'innovation-research-guild/poc-agent')
 
@@ -168,7 +169,7 @@ foreach ($line in $lines) {
     continue
   }
 
-  if ($section -eq 'local_flags' -and $line -match '^\s{2}(major_decision_required|documentation_sync_required|tech_specialist_required|qa_review_required|research_track_enabled|backend_security_required)\s*:\s*(.+)\s*$') {
+  if ($section -eq 'local_flags' -and $line -match '^\s{2}(major_decision_required|documentation_sync_required|tech_specialist_required|qa_review_required|research_track_enabled|backend_security_required|ux_review_required)\s*:\s*(.+)\s*$') {
     $k = $Matches[1]
     $v = $Matches[2].Trim().ToLowerInvariant()
     if ($v -notin @('true', 'false')) {
@@ -275,6 +276,7 @@ $allHandoffRoles = @($handoffFromValues + $handoffToValues)
 $hasCodeCritic = $allHandoffRoles -contains 'qa-review-guild/code-critic'
 $hasTestArchitect = $allHandoffRoles -contains 'qa-review-guild/test-architect'
 $hasBackendSecurityEvidence = (($assignee -eq $backendSecurityRole) -or ($allHandoffRoles -contains $backendSecurityRole))
+$hasUxSpecialistEvidence = (($assignee -eq $uxSpecialistRole) -or ($allHandoffRoles -contains $uxSpecialistRole))
 $hasTechSpecialist = ($assignee.StartsWith($techRolePrefix) -or (($allHandoffRoles | Where-Object { $_.StartsWith($techRolePrefix) }).Count -gt 0))
 $hasResearchRole = (($researchRoles -contains $assignee) -or (($allHandoffRoles | Where-Object { $_ -in $researchRoles }).Count -gt 0))
 
@@ -292,6 +294,11 @@ if ($status -eq 'done' -and $flagValues['qa_review_required'] -eq 'true') {
 
 if ($status -eq 'done' -and $flagValues['backend_security_required'] -eq 'true' -and -not $hasBackendSecurityEvidence) {
   Write-Error 'backend_security_required=true requires backend/security-expert evidence before done'
+  $hasErrors = $true
+}
+
+if ($status -eq 'done' -and $flagValues['ux_review_required'] -eq 'true' -and -not $hasUxSpecialistEvidence) {
+  Write-Error 'ux_review_required=true requires frontend/ux-specialist evidence before done'
   $hasErrors = $true
 }
 

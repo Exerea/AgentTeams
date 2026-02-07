@@ -17,7 +17,9 @@ local_flags:
   tech_specialist_required: false
   qa_review_required: true
   research_track_enabled: false
+
   backend_security_required: false
+  ux_review_required: false
 warnings: []
 handoffs:
   - from: documentation-guild/tech-writer
@@ -26,3 +28,7 @@ handoffs:
     memo: ドキュメント同期完了後に最終確認を依頼。
 notes: ドキュメント同期完了後に着手。
 updated_at: 2026-02-07T03:15:00Z
+
+
+
+

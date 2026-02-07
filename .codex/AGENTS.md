@@ -1,46 +1,44 @@
-# AgentTeams Constitution (v2.3)
+# AgentTeams Constitution (v2.6a)
 
 ## Purpose
-AgentTeams は、複数 AI エージェントが同一プロジェクトで一貫した意思決定を行うための運用基盤です。  
-本憲法は、ロール責務分離・ADR 継承・Atomic States 運用・通信品質管理・品質/技術/研究/バックエンドセキュリティガバナンスを固定します。
+AgentTeams は複数エージェントで一貫した意思決定と実装品質を維持するための運用規約である。  
+状態正本は Atomic States（`.codex/states/`）とし、coordinator が全体制御を担う。
 
 ## Non-Negotiable Rules
-1. 実装・レビュー・設計変更の前に、関連する `docs/adr/*.md` を参照する。
-2. 状態管理の正本は `.codex/states/` とし、単一巨大 state 運用は禁止する。
-3. 専門ロールは必ず `task_file_path` で渡された 1 ファイルだけを読み書きする。
-4. `_index.yaml` の更新は coordinator のみが行う。
-5. task 状態が変わったら、担当者は `status` と `updated_at` を更新する。
-6. 担当外の責務を直接実施しない。必要な作業は coordinator 経由で再分解する。
-7. `local_flags.major_decision_required=true` の task は ADR ゲート通過前に実装 task を `in_progress` にしない。  
-条件A: ADR task が `done`。  
-条件B: 対象 task に `adr_refs` が設定済み。  
-条件C: 対象 task の `depends_on` に ADR task ID が設定済み。
-8. API 契約の正本は `docs/api/openapi.yaml` とし、API 変更時は `documentation-guild/api-spec-owner` を必ず経由する。
-9. `local_flags.documentation_sync_required=true` の task は `documentation-guild/tech-writer` 完了前に `done` にしない。
-10. 通信規約変更は `protocol-team/protocol-architect` が提案し、coordinator 承認後に反映する。
-11. `warnings.status=open` が残る task は `done` にしない。
-12. `warnings.level=error` を含む task は remediation 完了前に downstream 実装 task を `in_progress` にしない。
-13. 通信エラーの証跡は task の `warnings`, `handoffs`, `notes` を正とする。
-14. コード変更 task は `local_flags.qa_review_required=true` を標準とし、`qa-review-guild/code-critic` 完了前に `done` にしない。
-15. `local_flags.backend_security_required=true` の task は `backend/security-expert` 完了前に `done` にしない。
-16. `backend_security_required=true` の標準適用条件は「外部公開 API 変更・認証/認可変更・PII 取扱い変更」のいずれかとする。
-17. バックエンド実装のレビュー順序は `backend/security-expert -> qa-review-guild/code-critic -> qa-review-guild/test-architect` を基本とする。
-18. `local_flags.tech_specialist_required=true` の task は該当 specialist 完了前に `done` にしない。
-19. `local_flags.research_track_enabled=true` かつ採用判断がある場合、`poc_result` 記録と ADR 承認前に実装着手しない。
-20. `frontend/code-reviewer` は運用上の正規後継を `qa-review-guild/code-critic` とし、新規割当は行わない。
-21. 専門性ルーティングは `target_stack.language/framework/infra` を基準に行う。
+1. 実装前に `docs/adr/*.md` を確認する。
+2. `task_file_path` で指定された task ファイル以外を更新しない。
+3. `_index.yaml` と `_role-gap-index.yaml` は coordinator のみ更新する。
+4. task 更新時は `status` と `updated_at` を必ず更新する。
+5. `local_flags.major_decision_required=true` は ADR 条件充足前に実装 task を `in_progress` にしない。
+6. API仕様の正本は `docs/api/openapi.yaml` とし、API変更は `documentation-guild/api-spec-owner` を経由する。
+7. `local_flags.documentation_sync_required=true` は `documentation-guild/tech-writer` 完了前に `done` にしない。
+8. `warnings.status=open` が残る task は `done` にしない。
+9. `warnings.level=error` がある場合は remediation 完了前に downstream 実装を開始しない。
+10. コード変更 task は `local_flags.qa_review_required=true` を標準とし、`qa-review-guild/code-critic` と `qa-review-guild/test-architect` 完了前に `done` にしない。
+11. `local_flags.backend_security_required=true` は `backend/security-expert` 完了前に `done` にしない。
+12. `backend_security_required=true` の標準適用条件は「外部公開API変更・認証/認可変更・PII取扱い変更」。
+13. バックエンドレビュー順序は `backend/security-expert -> qa-review-guild/code-critic -> qa-review-guild/test-architect` を基本とする。
+14. `local_flags.tech_specialist_required=true` は該当 specialist 完了前に `done` にしない。
+15. `local_flags.research_track_enabled=true` かつ採用判断ありの場合、`poc_result` 記録と ADR 承認前に実装着手しない。
+16. `frontend/code-reviewer` は後継を `qa-review-guild/code-critic` とし、新規割当しない。
+17. `local_flags.ux_review_required=true` は `frontend/ux-specialist` 完了前に `done` にしない。
+18. UX心理学レビューでは、認知負荷低減・導線明確化・段階的開示を確認し、ダークパターン（強制/誤認誘導/過度な希少性煽り）を禁止する。
+19. `validate-secrets` の最新成功確認前に `done` を確定しない（Secret Scan Gate）。
+20. role gap 候補は `detect-role-gaps` で検知し、`.codex/states/_role-gap-index.yaml` に反映する。
+21. `validate-role-gap-review` 失敗状態では運用変更 task の `done` を確定しない（Role Gap Review Gate）。
+22. `role_split/new_role` の反映は ADR を必須とし、`documentation-guild/adr-manager` 記録なしでは実施しない。
 
 ## Collaboration Surface
 - 司令塔: `.codex/coordinator.md`
 - ロール定義: `.codex/roles/**/instructions.md`
-- 共通オペレーション: `shared/skills/common-ops.md`
-- 状態管理: `.codex/states/_index.yaml`, `.codex/states/TASK-*.yaml`
-- 通信ガイド: `docs/guides/communication-protocol.md`
-- API 契約: `docs/api/openapi.yaml`
-- 技術ガイド: `docs/guides/`
+- 共通規約: `shared/skills/common-ops.md`
+- 状態正本: `.codex/states/_index.yaml`, `.codex/states/TASK-*.yaml`
+- ロール不足管理: `.codex/states/_role-gap-index.yaml`, `.codex/role-gap-rules.yaml`
+- 通信規約: `docs/guides/communication-protocol.md`
+- API正本: `docs/api/openapi.yaml`
 
 ## Escalation
-- 競合する判断が発生した場合は、coordinator が最終決定者となる。
-- 既存 ADR と矛盾する変更は、`docs/adr` に新規 ADR を追加して意思決定を明文化する。
-- コード差分と OpenAPI/ガイドの不整合は `documentation-guild` が差し戻し可能とする。
-- 通信プロトコル違反は `protocol-team/interaction-auditor` が検知し coordinator へエスカレーションする。
+- 担当外作業や競合判断は coordinator にエスカレーションする。
+- ADR未整備の重要判断は先に ADR 起票を行う。
+- 通信プロトコル違反は `protocol-team/interaction-auditor` が検知し、coordinator が最終決裁する。
+

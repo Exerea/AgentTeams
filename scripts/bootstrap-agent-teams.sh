@@ -46,6 +46,7 @@ fi
 paths_to_copy=(
   "AGENTS.md"
   "README.md"
+  ".gitleaks.toml"
   ".codex"
   "docs"
   "shared"

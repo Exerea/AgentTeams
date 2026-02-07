@@ -17,7 +17,9 @@ local_flags:
   tech_specialist_required: true
   qa_review_required: true
   research_track_enabled: false
+
   backend_security_required: true
+  ux_review_required: false
 warnings: []
 handoffs:
   - from: documentation-guild/adr-manager
@@ -34,3 +36,7 @@ handoffs:
     memo: 重大指摘なし。OpenAPI 同期へ進行可。
 notes: ADR gate 条件を満たしたため実装着手。Security先行レビュー後、ロールバック手順を含めてレビュー待ち。
 updated_at: 2026-02-07T02:45:00Z
+
+
+
+

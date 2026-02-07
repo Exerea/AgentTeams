@@ -1,7 +1,7 @@
 # Architecture Guide
 
 ## Purpose
-AgentTeams v2.3 の実装・通信・品質・研究・バックエンドセキュリティ連携フローを示す。
+AgentTeams の運用制御、役割連携、主要ゲートを俯瞰する。
 
 ## Multi-Guild Flow (Mermaid)
 ```mermaid
@@ -9,42 +9,60 @@ flowchart LR
   USER[User Request] --> COORD[coordinator]
   COORD --> TASK[TASK-*.yaml]
 
-  TASK --> IMPL[Implementation Roles]
-  IMPL --> WARN{Protocol Warning?}
-  WARN -- Yes --> PROTO_AUDIT[protocol-team/interaction-auditor]
-  PROTO_AUDIT --> PROTO_ARCH[protocol-team/protocol-architect]
-  PROTO_ARCH --> PROTO_OPT[protocol-team/prompt-optimizer]
-  WARN -- No --> TECH
+  TASK --> UID[frontend/ui-designer]
+  UID --> UX[frontend/ux-specialist]
+  UX --> FSEC{frontend security required?}
+  FSEC -- yes --> FSECR[frontend/security-expert]
+  FSEC -- no --> QA1
+  FSECR --> QA1[qa-review-guild/code-critic]
+  QA1 --> QA2[qa-review-guild/test-architect]
 
-  PROTO_OPT --> TECH[tech-specialist-guild]
-  TECH --> BSEC[backend/security-expert]
-  BSEC --> QA[qa-review-guild/code-critic + test-architect]
-  QA --> COMP[qa-review-guild/compliance-officer]
+  TASK --> BAPI[backend/api-architect]
+  BAPI --> BDB[backend/db-specialist]
+  BDB --> BSEC[backend/security-expert]
+  BSEC --> QA1
+
+  TASK --> WARN{Protocol Warning?}
+  WARN -- yes --> IA[protocol-team/interaction-auditor]
+  IA --> PA[protocol-team/protocol-architect]
+  PA --> PO[protocol-team/prompt-optimizer]
+  PO --> DOCADR
+
+  TASK --> DOCADR[documentation-guild/adr-manager]
+  DOCADR --> DOCAPI[documentation-guild/api-spec-owner]
+  DOCAPI --> DOCTW[documentation-guild/tech-writer]
+  QA2 --> DOCTW
+  DOCTW --> COORD
 
   TASK --> RND{research_track_enabled?}
-  RND -- Yes --> TREND[innovation-research-guild/trend-researcher]
+  RND -- yes --> TREND[innovation-research-guild/trend-researcher]
   TREND --> POC[innovation-research-guild/poc-agent]
-  POC --> ADR[documentation-guild/adr-manager]
-  RND -- No --> ADR
+  POC --> DOCADR
 
-  ADR --> API[documentation-guild/api-spec-owner]
-  API --> DOC[documentation-guild/tech-writer]
-  COMP --> COORD
-  DOC --> COORD
-  COORD --> INDEX[_index.yaml]
+  COORD --> INDEX[_index.yaml (coordinator only)]
+  COORD --> RG[_role-gap-index.yaml (coordinator only)]
 ```
 
 ## State Topology
-- 全体俯瞰: `.codex/states/_index.yaml`
+- 全体一覧: `.codex/states/_index.yaml`
 - task 詳細: `.codex/states/TASK-*.yaml`
-- 警告証跡: `warnings[]`
-- 技術ルーティング: `target_stack.*`
-- バックエンドセキュリティゲート: `local_flags.backend_security_required`
+- ロール不足管理: `.codex/states/_role-gap-index.yaml`
+- 警告管理: `warnings[]`
+- ルーティング: `target_stack.*`
+- ゲート制御: `local_flags.*`
+
+## Key Gates
+- `Documentation Sync Gate`: `local_flags.documentation_sync_required`
+- `QA Gate`: `local_flags.qa_review_required`
+- `Backend Security Gate`: `local_flags.backend_security_required`
+- `UX Gate`: `local_flags.ux_review_required`
+- `Research Gate`: `local_flags.research_track_enabled`
+- `Protocol Gate`: `warnings.status=open`
+- `Secret Scan Gate`: `validate-secrets` 最新成功必須
+- `Role Gap Review Gate`: `validate-role-gap-review` 成功必須
 
 ## Notes
-- API 契約の正本は `docs/api/openapi.yaml`
-- 通信規約の正本は `docs/guides/communication-protocol.md`
-- `qa_review_required=true` の task は QA 完了前に `done` 不可
-- `backend_security_required=true` の task は `backend/security-expert` 完了前に `done` 不可
-- バックエンド実装は `Security先行 -> QA` を基本順序とする
-- `research_track_enabled=true` の採用判断は `poc_result + ADR承認` が必須
+- API仕様の正本は `docs/api/openapi.yaml`。
+- 通信規約の正本は `docs/guides/communication-protocol.md`。
+- `_index.yaml` と `_role-gap-index.yaml` の更新者は coordinator のみ。
+

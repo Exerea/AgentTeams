@@ -1,0 +1,108 @@
+name: agentteams-validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-index-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate states index (PowerShell)
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-states-index.ps1 -Path .\.codex\states\_index.yaml
+
+  validate-index-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate states index (Bash)
+        run: |
+          bash ./scripts/validate-states-index.sh ./.codex/states/_index.yaml
+
+  validate-task-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate all task states (PowerShell)
+        shell: pwsh
+        run: |
+          Get-ChildItem .\.codex\states\TASK-*.yaml | ForEach-Object {
+            powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-task-state.ps1 -Path $_.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+  validate-task-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate all task states (Bash)
+        run: |
+          for f in ./.codex/states/TASK-*.yaml; do
+            bash ./scripts/validate-task-state.sh "$f"
+          done
+
+  validate-doc-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Validate documentation consistency
+        run: |
+          python scripts/validate-doc-consistency.py
+
+  validate-scenarios-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Validate request routing scenarios structure
+        run: |
+          python scripts/validate-scenarios-structure.py
+
+  detect-role-gaps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Detect role gaps
+        run: |
+          python scripts/detect-role-gaps.py
+
+  validate-role-gap-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Detect role gaps for latest snapshot
+        run: |
+          python scripts/detect-role-gaps.py
+      - name: Validate role gap review
+        run: |
+          python scripts/validate-role-gap-review.py
+
+  validate-secrets-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gitleaks
+        run: |
+          GITLEAKS_VERSION="8.24.2"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+      - name: Validate secrets
+        run: |
+          bash ./scripts/validate-secrets.sh

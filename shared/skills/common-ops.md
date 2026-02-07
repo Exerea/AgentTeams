@@ -1,26 +1,29 @@
 # common-ops
 
 ## Purpose
-全ロールが共通で守る最小オペレーションを定義する。
+全ロールで共通適用する最小運用ルール。
 
 ## Common Rules
-1. 作業前に `task_file_path` で渡された task ファイルだけを読む。
-2. 指定されていない task ファイルや `_index.yaml` は更新しない。
-3. 開始時に task の `status` を `in_progress` に更新する。
-4. 完了時に task の `status` を `in_review` または `done` に更新する。
-5. handoff 時は対象 task の `handoffs` と `updated_at` を更新する。
-6. ブロッカー発生時は `status=blocked` とし、`notes` に必要入力を記載する。
-7. `target_stack` を確認し、担当適合しない場合は coordinator に再割当を依頼する。
-8. `local_flags.major_decision_required=true` の場合、ADR 根拠なしで実装へ進まない。
-9. `local_flags.documentation_sync_required=true` の場合、tech-writer 完了前に機能 task を `done` にしない。
-10. `local_flags.qa_review_required=true` の場合、code-critic と test-architect 完了前に `done` にしない。
-11. `local_flags.tech_specialist_required=true` の場合、該当 specialist 完了前に `done` にしない。
-12. `local_flags.backend_security_required=true` の場合、`backend/security-expert` 完了前に `done` にしない。
-13. バックエンド実装の標準順序は `backend/security-expert -> qa-review-guild/code-critic -> qa-review-guild/test-architect` とする。
-14. `local_flags.research_track_enabled=true` の場合、`poc_result` と ADR 承認前に採用実装を開始しない。
-15. 通信出力前に `docs/guides/communication-protocol.md` を確認する。
-16. 通信違反を検知した場合は `warnings[]` に記録し `status=open` で起票する。
-17. 研究提案の一次証跡は `notes/handoffs/warnings` に記録する。
+1. 作業開始時は `task_file_path` で渡された `TASK-*.yaml` のみを読み書きする。
+2. `_index.yaml` と `_role-gap-index.yaml` は coordinator 専任更新とする。
+3. 作業着手時に `status=in_progress`、完了時は `in_review` または `done` へ更新する。
+4. handoff 時は `handoffs` に `from/to/at/memo` を記録し、`updated_at` を更新する。
+5. ブロッカーは `status=blocked` とし、`notes` に原因と次アクションを記録する。
+6. `target_stack` を確認し、担当外なら coordinator に再割当を要求する。
+7. `local_flags.major_decision_required=true` は ADR 条件充足前に実装へ進めない。
+8. `local_flags.documentation_sync_required=true` は `documentation-guild/tech-writer` 完了前に `done` にしない。
+9. `local_flags.qa_review_required=true` は `qa-review-guild/code-critic` と `qa-review-guild/test-architect` 完了前に `done` にしない。
+10. `local_flags.tech_specialist_required=true` は該当 specialist 完了前に `done` にしない。
+11. `local_flags.backend_security_required=true` は `backend/security-expert` 完了前に `done` にしない。
+12. `local_flags.ux_review_required=true` は `frontend/ux-specialist` 完了前に `done` にしない。
+13. `local_flags.research_track_enabled=true` は `poc_result` と ADR 承認前に採用実装を開始しない。
+14. `warnings.status=open` が残る task は `done` にしない。
+15. 研究/セキュリティ/UX の一次証跡は `notes/handoffs/warnings` に記録する。
+16. `done` 前に `validate-secrets` の最新成功を確認する。
+
+## UX Evidence Format
+- `notes` に `ux_checklist`（pass/needs_fix と根拠）を残す。
+- `handoffs.memo` に主要UX判断を1-2行で残す。
 
 ## Status Enum
 - `todo`
@@ -32,12 +35,5 @@
 ## Warnings Contract
 - `level`: `warning | error`
 - `status`: `open | triaged | resolved`
-- `code`:  
-`PROTO_SCHEMA_MISMATCH` / `PROTO_FIELD_CASE_MISMATCH` / `PROTO_REQUIRED_FIELD_MISSING` / `PROTO_UNEXPECTED_FIELD` / `PROTO_HANDOFF_CONTEXT_MISSING`
+- `code`: `PROTO_SCHEMA_MISMATCH | PROTO_FIELD_CASE_MISMATCH | PROTO_REQUIRED_FIELD_MISSING | PROTO_UNEXPECTED_FIELD | PROTO_HANDOFF_CONTEXT_MISSING`
 
-## Minimum Checklist
-- `task_file_path` のみを操作したか
-- `target_stack` と担当適合を確認したか
-- 関連 ADR を参照したか
-- `handoffs` と `updated_at` を更新したか
-- warning / research 証跡を記録したか

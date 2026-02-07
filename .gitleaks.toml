@@ -1,0 +1,10 @@
+title = "AgentTeams gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Allow clearly fake placeholder secrets used in examples"
+regexes = [
+  '''(?i)(example|dummy|sample|test|your)[-_]?(token|key|secret|password)'''
+]

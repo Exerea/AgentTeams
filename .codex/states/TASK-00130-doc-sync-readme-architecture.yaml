@@ -17,7 +17,9 @@ local_flags:
   tech_specialist_required: false
   qa_review_required: false
   research_track_enabled: false
+
   backend_security_required: false
+  ux_review_required: false
 warnings: []
 handoffs:
   - from: documentation-guild/api-spec-owner
@@ -30,3 +32,7 @@ handoffs:
     memo: docs/guides と README 同期中。最終確認を依頼予定。
 notes: Mermaid 図と機能一覧を更新中。
 updated_at: 2026-02-07T03:15:00Z
+
+
+
+

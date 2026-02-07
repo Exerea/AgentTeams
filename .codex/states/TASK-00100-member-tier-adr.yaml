@@ -16,7 +16,9 @@ local_flags:
   tech_specialist_required: false
   qa_review_required: false
   research_track_enabled: false
+
   backend_security_required: false
+  ux_review_required: false
 warnings: []
 handoffs:
   - from: coordinator
@@ -29,3 +31,7 @@ handoffs:
     memo: ADR gate satisfied。T-110 は depends_on と adr_refs を満たす。
 notes: 採用案/却下案を比較し ADR を作成。PR summary を証跡として記録済み。
 updated_at: 2026-02-07T02:20:00Z
+
+
+
+

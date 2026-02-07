@@ -55,6 +55,7 @@ required_flags = {
     "qa_review_required",
     "research_track_enabled",
     "backend_security_required",
+    "ux_review_required",
 }
 required_warning_keys = {
     "id",
@@ -80,6 +81,7 @@ allowed_warning_codes = {
 }
 qa_roles = {"qa-review-guild/code-critic", "qa-review-guild/test-architect"}
 backend_security_role = "backend/security-expert"
+ux_specialist_role = "frontend/ux-specialist"
 research_roles = {"innovation-research-guild/trend-researcher", "innovation-research-guild/poc-agent"}
 tech_prefix = "tech-specialist-guild/"
 
@@ -180,7 +182,7 @@ for ln in lines:
         continue
 
     if section == "local_flags":
-        m = re.match(r"^\s{2}(major_decision_required|documentation_sync_required|tech_specialist_required|qa_review_required|research_track_enabled|backend_security_required)\s*:\s*(.+)\s*$", ln)
+        m = re.match(r"^\s{2}(major_decision_required|documentation_sync_required|tech_specialist_required|qa_review_required|research_track_enabled|backend_security_required|ux_review_required)\s*:\s*(.+)\s*$", ln)
         if m:
             k = m.group(1)
             v = m.group(2).strip().lower()
@@ -259,6 +261,7 @@ all_handoff_roles = set(handoff_from_values + handoff_to_values)
 has_code_critic = "qa-review-guild/code-critic" in all_handoff_roles
 has_test_arch = "qa-review-guild/test-architect" in all_handoff_roles
 has_backend_security = assignee == backend_security_role or backend_security_role in all_handoff_roles
+has_ux_specialist = assignee == ux_specialist_role or ux_specialist_role in all_handoff_roles
 has_tech_specialist = assignee.startswith(tech_prefix) or any(r.startswith(tech_prefix) for r in all_handoff_roles)
 has_research_role = assignee in research_roles or any(r in research_roles for r in all_handoff_roles)
 
@@ -271,6 +274,9 @@ if status == "done" and flags.get("qa_review_required") == "true":
 
 if status == "done" and flags.get("backend_security_required") == "true" and not has_backend_security:
     errors.append("backend_security_required=true requires backend/security-expert evidence before done")
+
+if status == "done" and flags.get("ux_review_required") == "true" and not has_ux_specialist:
+    errors.append("ux_review_required=true requires frontend/ux-specialist evidence before done")
 
 if status == "done" and flags.get("tech_specialist_required") == "true" and not has_tech_specialist:
     errors.append("tech_specialist_required=true requires tech-specialist-guild evidence before done")
