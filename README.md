@@ -16,7 +16,7 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 - 共通運用: `shared/skills/common-ops.md`
 
 ## 主要方針（v2.8）
-1. `frontend/code-reviewer` は後継を `qa-review-guild/code-critic` とする
+1. `frontend/code-reviewer` は廃止済みとし、正規レビュー担当は `qa-review-guild/code-critic` とする（新規割当は validator で失敗）
 2. コード変更 task は `qa_review_required=true` を標準適用
 3. 外部公開API/認証認可/PII変更は `backend_security_required=true` を標準適用
 4. UI変更/導線変更/フォーム体験変更は `ux_review_required=true` を標準適用
@@ -140,3 +140,15 @@ bash ./scripts/validate-repo.sh
 - `_index.yaml` と `_role-gap-index.yaml` は coordinator 専任更新
 - ルール解釈が曖昧な場合は `docs/guides/rule-examples.md` の Good/Bad を優先する
 - `detect-role-gaps.py` は新規候補や内容変化がある場合のみ `_role-gap-index.yaml` を更新する
+
+## Immediate Correction (v2.8.1)
+- Improvement Proposal Rule: `status=blocked` または `warnings.status=open` が残る task は、`IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>` を `notes` か `handoffs.memo` に必須記録する。
+- Deprecation Hygiene: `.codex/deprecation-rules.yaml` を正本とし、`scripts/validate-deprecated-assets.py` で廃止資産の残存と再混入を検査する。
+
+### Deprecation Validation
+```powershell
+python .\scripts\validate-deprecated-assets.py
+```
+```bash
+python3 ./scripts/validate-deprecated-assets.py
+```

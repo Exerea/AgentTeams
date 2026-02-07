@@ -4,6 +4,7 @@
 - Date: 2026-02-07
 - Deciders: frontend/ui-designer, frontend/code-reviewer
 - Supersedes: none
+- Note: `frontend/code-reviewer` は当時の名称。現行運用では `qa-review-guild/code-critic` が後継。
 
 ## Context
 クライアント側で API データ取得ロジックが各画面に分散し、ローディング・エラーハンドリング・再取得戦略が不統一だった。

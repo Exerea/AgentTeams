@@ -573,3 +573,9 @@ ADRなしで role ディレクトリを追加し、運用文書を更新しな�
 - `.codex/states/_role-gap-index.yaml`
 - `.codex/roles/documentation-guild/adr-manager/instructions.md`
 - `docs/adr/`
+
+## Supplemental Notes (v2.8.1)
+- 必要性判断: 追加レビュー・追加Gate・MCP活用の要否を都度確認する。
+- 進言: 必要な追加対応は `【進言】...` で明示する。
+- Improvement Proposal format: `IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>`
+- Deprecated role reminder: `frontend/code-reviewer` は廃止済み扱いで、新規レビューは `qa-review-guild/code-critic` に統一する。

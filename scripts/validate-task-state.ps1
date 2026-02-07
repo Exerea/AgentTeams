@@ -31,10 +31,12 @@ $allowedWarningCodes = @(
 $qaRoles = @('qa-review-guild/code-critic', 'qa-review-guild/test-architect')
 $backendSecurityRole = 'backend/security-expert'
 $uxSpecialistRole = 'frontend/ux-specialist'
+$removedReviewerRole = 'frontend/code-reviewer'
 $techRolePrefix = 'tech-specialist-guild/'
 $researchRoles = @('innovation-research-guild/trend-researcher', 'innovation-research-guild/poc-agent')
 $statusesRequireDeclaration = @('in_progress', 'in_review', 'done')
 $declarationPattern = '^DECLARATION\s+team=\S+\s+role=\S+\s+task=(?:T-\d+|N/A)\s+action=\S+(?:\s+\|\s+.*)?$'
+$improvementPattern = 'IMPROVEMENT_PROPOSAL\s+type=(?:process|role|tool|rule|cleanup)\s+priority=(?:high|medium|low)\s+owner=coordinator\s+summary=.+'
 
 $hasErrors = $false
 $name = Split-Path -Leaf $Path
@@ -285,21 +287,48 @@ foreach ($k in $requiredFlagKeys) {
 $allHandoffRoles = @($handoffFromValues + $handoffToValues)
 $hasCodeCritic = $allHandoffRoles -contains 'qa-review-guild/code-critic'
 $hasTestArchitect = $allHandoffRoles -contains 'qa-review-guild/test-architect'
+$hasRemovedReviewerRole = (($assignee -eq $removedReviewerRole) -or ($allHandoffRoles -contains $removedReviewerRole))
 $hasBackendSecurityEvidence = (($assignee -eq $backendSecurityRole) -or ($allHandoffRoles -contains $backendSecurityRole))
 $hasUxSpecialistEvidence = (($assignee -eq $uxSpecialistRole) -or ($allHandoffRoles -contains $uxSpecialistRole))
 $hasTechSpecialist = ($assignee.StartsWith($techRolePrefix) -or (($allHandoffRoles | Where-Object { $_.StartsWith($techRolePrefix) }).Count -gt 0))
 $hasResearchRole = (($researchRoles -contains $assignee) -or (($allHandoffRoles | Where-Object { $_ -in $researchRoles }).Count -gt 0))
 $hasDeclarationEvidence = (($handoffMemoValues | Where-Object { $_ -match $declarationPattern }).Count -gt 0)
 $invalidDeclarations = @($handoffMemoValues | Where-Object { $_ -match '^DECLARATION\b' -and $_ -notmatch $declarationPattern })
+$hasImprovementEvidence = ($notes -match $improvementPattern) -or (($handoffMemoValues | Where-Object { $_ -match $improvementPattern }).Count -gt 0)
+$invalidImprovementEntries = @(
+  $handoffMemoValues | Where-Object {
+    ($_ -match 'IMPROVEMENT_PROPOSAL') -and ($_ -notmatch $improvementPattern)
+  }
+)
+if ($notes -match 'IMPROVEMENT_PROPOSAL' -and $notes -notmatch $improvementPattern) {
+  $invalidImprovementEntries += @('notes')
+}
+$needsImprovementProposal = ($status -eq 'blocked') -or (($warningOpenCount -gt 0) -and ($status -in @('blocked', 'in_review', 'done')))
 
 if ($invalidDeclarations.Count -gt 0) {
   Write-Error 'handoff memo contains invalid DECLARATION format'
   $hasErrors = $true
 }
 
+if ($invalidImprovementEntries.Count -gt 0) {
+  Write-Error 'IMPROVEMENT_PROPOSAL format is invalid. expected: IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>'
+  $hasErrors = $true
+}
+
 if ($status -in $statusesRequireDeclaration -and -not $hasDeclarationEvidence) {
   if (-not $taskId) { $taskId = 'N/A' }
   Write-Error "task '$taskId' with status '$status' requires at least one handoff memo declaration"
+  $hasErrors = $true
+}
+
+if ($needsImprovementProposal -and -not $hasImprovementEvidence) {
+  if (-not $taskId) { $taskId = 'N/A' }
+  Write-Error "task '$taskId' requires IMPROVEMENT_PROPOSAL evidence when blocked or unresolved warnings are present"
+  $hasErrors = $true
+}
+
+if ($hasRemovedReviewerRole) {
+  Write-Error "frontend/code-reviewer is removed and cannot be assigned or used in handoffs; use qa-review-guild/code-critic"
   $hasErrors = $true
 }
 

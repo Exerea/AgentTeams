@@ -4,6 +4,7 @@
 このリポジトリは Template Repo として各案件に同梱し、coordinator が task 分解とロール割当を行う。  
 状態正本は `.codex/states/` で、`_index.yaml` は全体俯瞰、`TASK-*.yaml` は実務詳細を管理する。  
 v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口上、`handoff memo` は機械可読宣言でアクティブロール可視化を必須化した。加えて、作業開始時と Gate判断時に必要性判断を行い、必要時は `【進言】...` を出す。
+`frontend/code-reviewer` は廃止済みとし、新規 task では `qa-review-guild/code-critic` を正規レビュー担当とする。
 
 ## 運用シナリオ正本
 - `docs/guides/request-routing-scenarios.md`
@@ -158,8 +159,13 @@ python3 ./scripts/validate-rule-examples-coverage.py
 9. `in_progress/in_review/done` task で宣言付き handoff がない場合 validate 失敗
 10. 宣言に `team/role/task/action` のいずれか欠落がある場合 validate 失敗
 11. 23ルールのいずれかで Good/Bad/Detection/Related Files 欠落がある場合 coverage validate 失敗
+12. `frontend/code-reviewer` を `assignee` または `handoffs` に含む task は validate 失敗
 
 ## 前提
 - `_index.yaml` と `_role-gap-index.yaml` の更新者は coordinator のみ
 - `task_file_path` 以外の task ファイル更新は禁止
 - CI 必須チェックを通らない変更はマージ不可
+
+## Immediate Correction Addendum (v2.8.1)
+- Improvement Proposal Rule: `status=blocked` または `warnings.status=open` を含む task は、`IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>` を `notes` または `handoffs.memo` に記録しない限り前進不可。
+- Deprecation Hygiene: `.codex/deprecation-rules.yaml` を参照し、`scripts/validate-deprecated-assets.py` を CI/ローカルで必須実行する。

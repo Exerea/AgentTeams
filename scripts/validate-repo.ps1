@@ -42,6 +42,7 @@ try {
   Invoke-PythonScript -ScriptPath .\scripts\validate-rule-examples-coverage.py
   Invoke-PythonScript -ScriptPath .\scripts\detect-role-gaps.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-role-gap-review.py
+  Invoke-PythonScript -ScriptPath .\scripts\validate-deprecated-assets.py
 
   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.ps1
   if ($LASTEXITCODE -ne 0) { throw 'validate-secrets.ps1 failed' }

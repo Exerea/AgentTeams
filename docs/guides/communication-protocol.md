@@ -90,3 +90,11 @@ T-110をやります。
 `mcp_evidence: tool=devtools, purpose=<目的>, result=<結果>, artifacts=<証跡パス>`
 4. MCP 実行結果だけで完了判定しない。Gate 基準の充足を優先する。
 5. 秘密情報（鍵/トークン/PII）を MCP 入力・画面・ログへ含めない。
+
+## Improvement Proposal Pattern
+- Trigger: status=blocked または warnings.status=open を保持したまま作業継続する場合。
+- Required format: IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>
+- Good:
+DECLARATION team=coordinator role=coordinator task=T-210 action=gate_recheck | IMPROVEMENT_PROPOSAL type=process priority=high owner=coordinator summary=Security先行の再検証手順を追加
+- Bad:
+改善します （type/priority/owner/summary が欠落）

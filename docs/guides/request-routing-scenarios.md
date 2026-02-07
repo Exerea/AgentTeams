@@ -20,6 +20,7 @@
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
 - handoff の `memo` 先頭行は宣言フォーマットを必須記録する。  
 `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+- `frontend/code-reviewer` は廃止済みであり、新規 task の `assignee` / `handoffs` に使用しない（`qa-review-guild/code-critic` を使用）。
 - `done` は各 Gate 条件を満たした場合のみ確定する。
 
 ## Scenario 1: 機能追加（UI導線あり）
@@ -377,3 +378,7 @@ python .\scripts\validate-role-gap-review.py
 python3 ./scripts/detect-role-gaps.py
 python3 ./scripts/validate-role-gap-review.py
 ```
+
+## Improvement Proposal Rule (Cross-Scenario)
+- `status=blocked` または `warnings.status=open` の task は、以下の記録がない限り次工程へ進めない。
+- `IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>`

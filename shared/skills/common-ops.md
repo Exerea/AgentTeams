@@ -48,3 +48,9 @@
 - `level`: `warning | error`
 - `status`: `open | triaged | resolved`
 - `code`: `PROTO_SCHEMA_MISMATCH | PROTO_FIELD_CASE_MISMATCH | PROTO_REQUIRED_FIELD_MISSING | PROTO_UNEXPECTED_FIELD | PROTO_HANDOFF_CONTEXT_MISSING`
+
+## Immediate Correction Addendum
+- 改善提案が必要な条件: status=blocked または warnings.status=open が残る場合。
+- 改善提案フォーマット: IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>
+- 記録先: 
+otes または handoffs.memo（DECLARATION と同居可）。

@@ -82,9 +82,13 @@ allowed_warning_codes = {
 qa_roles = {"qa-review-guild/code-critic", "qa-review-guild/test-architect"}
 backend_security_role = "backend/security-expert"
 ux_specialist_role = "frontend/ux-specialist"
+removed_reviewer_role = "frontend/code-reviewer"
 research_roles = {"innovation-research-guild/trend-researcher", "innovation-research-guild/poc-agent"}
 tech_prefix = "tech-specialist-guild/"
 declaration_pattern = re.compile(r"^DECLARATION\s+team=\S+\s+role=\S+\s+task=(?:T-\d+|N/A)\s+action=\S+(?:\s+\|\s+.*)?$")
+improvement_pattern = re.compile(
+    r"IMPROVEMENT_PROPOSAL\s+type=(?:process|role|tool|rule|cleanup)\s+priority=(?:high|medium|low)\s+owner=coordinator\s+summary=.+"
+)
 statuses_require_declaration = {"in_progress", "in_review", "done"}
 
 errors = []
@@ -272,20 +276,44 @@ for k in sorted(required_flags):
 all_handoff_roles = set(handoff_from_values + handoff_to_values)
 has_code_critic = "qa-review-guild/code-critic" in all_handoff_roles
 has_test_arch = "qa-review-guild/test-architect" in all_handoff_roles
+has_removed_reviewer_role = assignee == removed_reviewer_role or removed_reviewer_role in all_handoff_roles
 has_backend_security = assignee == backend_security_role or backend_security_role in all_handoff_roles
 has_ux_specialist = assignee == ux_specialist_role or ux_specialist_role in all_handoff_roles
 has_tech_specialist = assignee.startswith(tech_prefix) or any(r.startswith(tech_prefix) for r in all_handoff_roles)
 has_research_role = assignee in research_roles or any(r in research_roles for r in all_handoff_roles)
 has_declaration_evidence = any(declaration_pattern.match(memo) for memo in handoff_memo_values)
 invalid_declarations = [memo for memo in handoff_memo_values if memo.startswith("DECLARATION") and not declaration_pattern.match(memo)]
+has_improvement_evidence = bool(improvement_pattern.search(notes)) or any(
+    bool(improvement_pattern.search(memo)) for memo in handoff_memo_values
+)
+invalid_improvement_entries = [memo for memo in handoff_memo_values if "IMPROVEMENT_PROPOSAL" in memo and not improvement_pattern.search(memo)]
+if "IMPROVEMENT_PROPOSAL" in notes and not improvement_pattern.search(notes):
+    invalid_improvement_entries.append("notes")
+needs_improvement_proposal = status == "blocked" or (warning_open_count > 0 and status in {"blocked", "in_review", "done"})
 
 if invalid_declarations:
     errors.append("handoff memo contains invalid DECLARATION format")
+
+if invalid_improvement_entries:
+    errors.append(
+        "IMPROVEMENT_PROPOSAL format is invalid. expected: "
+        "IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> "
+        "priority=<high|medium|low> owner=coordinator summary=<text>"
+    )
 
 if status in statuses_require_declaration and not has_declaration_evidence:
     errors.append(
         f"task '{task_id or 'N/A'}' with status '{status}' requires at least one handoff memo declaration"
     )
+
+if needs_improvement_proposal and not has_improvement_evidence:
+    errors.append(
+        f"task '{task_id or 'N/A'}' requires IMPROVEMENT_PROPOSAL evidence "
+        "when blocked or unresolved warnings are present"
+    )
+
+if has_removed_reviewer_role:
+    errors.append("frontend/code-reviewer is removed and cannot be assigned or used in handoffs; use qa-review-guild/code-critic")
 
 if status == "done" and warning_open_count > 0:
     errors.append("task cannot be done while warnings.status=open exists")

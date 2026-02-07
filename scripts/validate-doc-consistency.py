@@ -29,6 +29,7 @@ def main() -> int:
         "workflow": repo_root / ".github" / "workflows" / "agentteams-validate.yml",
         "role_gap_rules": repo_root / ".codex" / "role-gap-rules.yaml",
         "role_gap_index": repo_root / ".codex" / "states" / "_role-gap-index.yaml",
+        "deprecation_rules": repo_root / ".codex" / "deprecation-rules.yaml",
     }
 
     errors: list[str] = []
@@ -186,6 +187,44 @@ def main() -> int:
         "rule_examples": ["## R-01", "## R-23", "### Good Example", "### Bad Example"],
     }
     for key, needles in rule_example_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    # Reviewer ownership consistency
+    reviewer_ownership_refs = {
+        "agents": ["frontend/code-reviewer", "廃止済み", "qa-review-guild/code-critic"],
+        "coordinator": ["frontend/code-reviewer", "新規割当禁止", "qa-review-guild/code-critic"],
+        "readme": ["frontend/code-reviewer", "廃止済み", "qa-review-guild/code-critic"],
+        "spec": ["frontend/code-reviewer", "qa-review-guild/code-critic"],
+        "scenarios": ["frontend/code-reviewer", "qa-review-guild/code-critic"],
+        "rule_examples": ["frontend/code-reviewer", "qa-review-guild/code-critic"],
+    }
+    for key, needles in reviewer_ownership_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    # Improvement proposal protocol consistency
+    improvement_refs = {
+        "agents": ["IMPROVEMENT_PROPOSAL", "type=", "priority=", "owner=coordinator", "summary="],
+        "coordinator": ["IMPROVEMENT_PROPOSAL", "type=", "priority=", "owner=coordinator", "summary="],
+        "common_ops": ["IMPROVEMENT_PROPOSAL", "type=", "priority=", "owner=coordinator", "summary="],
+        "readme": ["IMPROVEMENT_PROPOSAL", "type=", "priority=", "owner=coordinator", "summary="],
+        "spec": ["IMPROVEMENT_PROPOSAL", "type=", "priority=", "owner=coordinator", "summary="],
+        "protocol": ["IMPROVEMENT_PROPOSAL", "type=", "priority=", "owner=coordinator", "summary="],
+        "scenarios": ["IMPROVEMENT_PROPOSAL", "type=", "priority=", "owner=coordinator", "summary="],
+        "rule_examples": ["IMPROVEMENT_PROPOSAL", "type=", "priority=", "owner=coordinator", "summary="],
+    }
+    for key, needles in improvement_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    # Deprecation cleanup consistency
+    deprecation_refs = {
+        "agents": ["validate-deprecated-assets.py", "deprecation-rules.yaml"],
+        "coordinator": ["validate-deprecated-assets.py", "deprecation-rules.yaml"],
+        "readme": ["validate-deprecated-assets.py", "deprecation-rules.yaml"],
+        "spec": ["validate-deprecated-assets.py", "deprecation-rules.yaml"],
+        "workflow": ["validate-deprecated-assets"],
+        "deprecation_rules": ["retired_roles", "retired_paths"],
+    }
+    for key, needles in deprecation_refs.items():
         require_all(content[key], needles, files[key], errors)
 
     # Spec heading check

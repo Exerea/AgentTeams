@@ -21,7 +21,7 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 14. バックエンドレビュー順序は `backend/security-expert -> qa-review-guild/code-critic -> qa-review-guild/test-architect` を基本とする。
 15. `local_flags.tech_specialist_required=true` は該当 specialist 完了前に `done` にしない。
 16. `local_flags.research_track_enabled=true` かつ採用判断ありの場合、`poc_result` 記録と ADR 承認前に実装着手しない。
-17. `frontend/code-reviewer` は後継を `qa-review-guild/code-critic` とし、新規割当しない。
+17. `frontend/code-reviewer` は廃止済みとし、新規割当しない。レビュー担当は `qa-review-guild/code-critic` とし、`assignee` または `handoffs` に `frontend/code-reviewer` が含まれる task は validator で失敗させる。
 18. `local_flags.ux_review_required=true` は `frontend/ux-specialist` 完了前に `done` にしない。
 19. UX心理学レビューでは、認知負荷低減・導線明確化・段階的開示を確認し、ダークパターン（強制/誤認誘導/過度な希少性煽り）を禁止する。
 20. `validate-secrets` の最新成功確認前に `done` を確定しない（Secret Scan Gate）。
@@ -45,3 +45,9 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 - ADR未整備の重要判断は先に ADR 起票を行う。
 - 通信プロトコル違反は `protocol-team/interaction-auditor` が検知し、coordinator が最終決裁する。
 - ルール解釈に迷った場合は `docs/guides/rule-examples.md` を優先参照する。
+
+## v2.8.1 Immediate Correction Addendum
+- Improvement Proposal Rule: status=blocked または warnings.status=open を含む task では、改善提案を必須とする。
+- Proposal Format: IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>
+- Enforcement: scripts/validate-task-state.ps1 / scripts/validate-task-state.sh で検証する。
+- Deprecation Hygiene: 廃止資産の再混入を scripts/validate-deprecated-assets.py と .codex/deprecation-rules.yaml で検知し、失敗時は done を確定しない。

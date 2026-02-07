@@ -123,6 +123,7 @@
 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 7. 追加提案がある場合は口上の次行で進言を明示する。  
 `【進言】<提案内容>（理由: <risk_or_benefit>）`
+8. `frontend/code-reviewer` は廃止済みで新規割当禁止とする。`assignee` または `handoffs` に設定してはならない。検出時は `blocked` として `qa-review-guild/code-critic` へ再割当する。
 
 ## Index Ownership Rules
 - `_index.yaml` の更新は coordinator のみ行う。
@@ -134,3 +135,9 @@
 2. task ファイルを `.codex/states/archive/` へ移動する。
 3. `<元ファイル名>__done-YYYY-MM-DD.yaml` 形式へ改名する。
 4. `_index.yaml` の `status/file/updated_at` を同期更新する。
+
+## Immediate Correction Addendum
+- Blocked または unresolved warning を含む task は、IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text> を 
+otes または handoffs.memo に記録する。
+- coordinator は Gate 判断時に改善提案の有無を確認し、不足時は task を locked に戻して差し戻す。
+- 廃止資産の再混入検査として scripts/validate-deprecated-assets.py と .codex/deprecation-rules.yaml を運用必須とする。
