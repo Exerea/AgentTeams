@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlink installations (e.g. ~/.local/bin/at -> <repo>/at).
+source_path="${BASH_SOURCE[0]}"
+while [[ -h "$source_path" ]]; do
+  source_dir="$(cd -P "$(dirname "$source_path")" && pwd)"
+  linked_path="$(readlink "$source_path")"
+  if [[ "$linked_path" == /* ]]; then
+    source_path="$linked_path"
+  else
+    source_path="$source_dir/$linked_path"
+  fi
+done
+
+script_dir="$(cd -P "$(dirname "$source_path")" && pwd)"
 bash "$script_dir/scripts/at.sh" "$@"

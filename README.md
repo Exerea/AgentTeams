@@ -35,6 +35,11 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 - `coordinatorとして処理して` は推奨文であり必須ではない（coordinator がデフォルト受理）
 
 ### 導入コマンド（推奨）
+```bash
+./scripts/install-at.sh
+```
+- Linux/macOS で `at` を直接使う場合は最初に実行（`~/.local/bin/at` を作成）
+
 ```powershell
 at init <git-url>
 at init --here
