@@ -142,6 +142,13 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 * **Good Result:** `role_split/new_role` を行う際、`adr-manager` に記録を残し、ADR に基づいて反映する。
 * **Bad Result:** ADR による正式な合意プロセスを飛ばして、新しいロールを勝手に作成・適用する。
 
+## Task Start Contract Snapshot (v2.8)
+- 固定開始宣言（Task開始時のみ）: `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
+- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
+- 機械可読テンプレ: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+- `local_flags` では `backend_security_required` と `ux_review_required` を運用必須の判定軸として扱う。
+- `frontend/code-reviewer` は廃止済みであり、レビュー担当は `qa-review-guild/code-critic` を使用する。
+
 ## Collaboration Surface
 - 司令塔: `.codex/coordinator.md`
 - ロール定義: `.codex/roles/**/instructions.md`

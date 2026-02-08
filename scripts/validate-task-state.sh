@@ -282,7 +282,7 @@ has_ux_specialist = assignee == ux_specialist_role or ux_specialist_role in all_
 has_tech_specialist = assignee.startswith(tech_prefix) or any(r.startswith(tech_prefix) for r in all_handoff_roles)
 has_research_role = assignee in research_roles or any(r in research_roles for r in all_handoff_roles)
 has_declaration_evidence = any(declaration_pattern.match(memo) for memo in handoff_memo_values)
-invalid_declarations = [memo for memo in handoff_memo_values if memo.startswith("DECLARATION") and not declaration_pattern.match(memo)]
+invalid_declarations = [memo for memo in handoff_memo_values if not declaration_pattern.match(memo)]
 has_improvement_evidence = bool(improvement_pattern.search(notes)) or any(
     bool(improvement_pattern.search(memo)) for memo in handoff_memo_values
 )
@@ -292,7 +292,7 @@ if "IMPROVEMENT_PROPOSAL" in notes and not improvement_pattern.search(notes):
 needs_improvement_proposal = status == "blocked" or (warning_open_count > 0 and status in {"blocked", "in_review", "done"})
 
 if invalid_declarations:
-    errors.append("handoff memo contains invalid DECLARATION format")
+    errors.append("handoff memo must start with valid DECLARATION format")
 
 if invalid_improvement_entries:
     errors.append(

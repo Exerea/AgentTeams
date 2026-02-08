@@ -167,6 +167,18 @@ jobs:
         run: |
           python scripts/detect-recurring-incident.py
 
+  operation-smoke-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: AgentTeams operation smoke test (fixture)
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-agentteams-operation.ps1 -UseFixtureRepo -MinTeams 3 -MinRoles 5
+
   validate-secrets-linux:
     runs-on: ubuntu-latest
     steps:

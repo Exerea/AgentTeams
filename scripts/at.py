@@ -169,13 +169,26 @@ def repo_name_from_url(repo_url: str) -> str:
 
 def managed_agents_content() -> str:
     lines = [
-        "# AGENTS.md (AgentTeams Entry)",
+        "# AGENTS.md (AgentTeams Entry + Minimum Runtime Contract)",
         "",
         MANAGED_MARKER,
         "This file is the AgentTeams entrypoint.",
-        "Resolution order:",
-        "1. `.codex/AGENTS.md` (AgentTeams canonical rules)",
-        "2. `.codex/AGENTS.local.md` (previous local rules, optional)",
+        "",
+        "## Canonical Rules",
+        "- Source of truth: `.codex/AGENTS.md`",
+        "- Optional local override backup: `.codex/AGENTS.local.md`",
+        "- Read canonical rules first on task start.",
+        "- PowerShell UTF-8 read example: `Get-Content .codex/AGENTS.md -Encoding utf8`",
+        "",
+        "## Task Start Contract (Chat)",
+        "- Task開始時は `固定開始宣言 -> 【稼働口上】 -> DECLARATION` の順を必須化",
+        "- 固定開始宣言: `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`",
+        "- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`",
+        "- 機械可読: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`",
+        "",
+        "## Coordinator Intake / Decomposition",
+        "- coordinator accepts requests by default and decomposes by `Goal/Constraints/Acceptance`.",
+        "- Work should proceed through `TASK-*.yaml` with explicit `task_file_path` handoff.",
     ]
     return "\n".join(lines)
 

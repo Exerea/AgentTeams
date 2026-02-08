@@ -12,6 +12,14 @@ $agentteamsCmd = Join-Path -Path $templateRoot -ChildPath 'agentteams.cmd'
 $atCmd = Join-Path -Path $templateRoot -ChildPath 'at.cmd'
 $chatValidator = Join-Path -Path $templateRoot -ChildPath 'scripts/validate-chat-declaration.py'
 $globalKickoff = '殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！'
+$managedAgentsRequiredTokens = @(
+  '.codex/AGENTS.md',
+  '固定開始宣言',
+  '【稼働口上】',
+  'DECLARATION',
+  'Get-Content .codex/AGENTS.md -Encoding utf8',
+  'Goal/Constraints/Acceptance'
+)
 
 if (-not (Test-Path -LiteralPath $agentteamsCmd -PathType Leaf)) {
   throw "missing command launcher: $agentteamsCmd"
@@ -32,6 +40,19 @@ function Assert-Condition {
   )
   if (-not $Condition) {
     throw $Message
+  }
+}
+
+function Assert-ManagedAgentsContract {
+  param(
+    [Parameter(Mandatory = $true)][string]$AgentsPath,
+    [Parameter(Mandatory = $true)][string]$Context
+  )
+
+  Assert-Condition -Condition (Test-Path -LiteralPath $AgentsPath -PathType Leaf) -Message "AGENTS.md missing: $Context"
+  $agentsText = [System.IO.File]::ReadAllText($AgentsPath, [System.Text.Encoding]::UTF8)
+  foreach ($token in $managedAgentsRequiredTokens) {
+    Assert-Condition -Condition ($agentsText.Contains($token)) -Message "AGENTS.md missing token '$token' ($Context)"
   }
 }
 
@@ -187,6 +208,7 @@ try {
 
   $targetRepo = Join-Path -Path $workspace -ChildPath 'sample-app'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'AGENTS.md') -PathType Leaf) -Message 'AGENTS.md missing after clone init'
+  Assert-ManagedAgentsContract -AgentsPath (Join-Path $targetRepo 'AGENTS.md') -Context 'clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo '.codex/AGENTS.md') -PathType Leaf) -Message '.codex/AGENTS.md missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'agentteams.cmd') -PathType Leaf) -Message 'agentteams.cmd missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'agentteams.ps1') -PathType Leaf) -Message 'agentteams.ps1 missing after clone init'
@@ -221,6 +243,7 @@ try {
     $localAgentsPath = Join-Path $inplaceRepo '.codex/AGENTS.local.md'
     $agentsText = [System.IO.File]::ReadAllText($agentsPath, [System.Text.Encoding]::UTF8)
     Assert-Condition -Condition ($agentsText.Contains('AGENTTEAMS_MANAGED:ENTRY v1')) -Message 'managed marker missing after coexist policy'
+    Assert-ManagedAgentsContract -AgentsPath $agentsPath -Context 'coexist policy'
     Assert-Condition -Condition (Test-Path -LiteralPath $localAgentsPath -PathType Leaf) -Message '.codex/AGENTS.local.md missing after coexist policy'
     Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $inplaceRepo 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'logs/e2e-ai-log.md missing after default here mode'
   }
@@ -269,6 +292,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'replace policy failed' }
     $replaceText = [System.IO.File]::ReadAllText((Join-Path $replaceRepo 'AGENTS.md'), [System.Text.Encoding]::UTF8)
     Assert-Condition -Condition ($replaceText.Contains('AGENTTEAMS_MANAGED:ENTRY v1')) -Message 'replace policy did not write managed AGENTS.md'
+    Assert-ManagedAgentsContract -AgentsPath (Join-Path $replaceRepo 'AGENTS.md') -Context 'replace policy'
     $localReplacePath = Join-Path $replaceRepo '.codex/AGENTS.local.md'
     Assert-Condition -Condition (Test-Path -LiteralPath $localReplacePath -PathType Leaf) -Message 'replace policy did not create .codex/AGENTS.local.md'
     $localReplaceText = [System.IO.File]::ReadAllText($localReplacePath, [System.Text.Encoding]::UTF8)
@@ -297,6 +321,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'agentteams init failed in nested layout product repo' }
 
     Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $nestedProduct 'AGENTS.md') -PathType Leaf) -Message 'nested layout missing AGENTS.md after at init'
+    Assert-ManagedAgentsContract -AgentsPath (Join-Path $nestedProduct 'AGENTS.md') -Context 'nested layout'
     Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $nestedProduct '.codex/AGENTS.md') -PathType Leaf) -Message 'nested layout missing .codex/AGENTS.md after at init'
     Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $nestedProduct 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'nested layout missing logs/e2e-ai-log.md after at init'
   }

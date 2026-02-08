@@ -293,7 +293,7 @@ $hasUxSpecialistEvidence = (($assignee -eq $uxSpecialistRole) -or ($allHandoffRo
 $hasTechSpecialist = ($assignee.StartsWith($techRolePrefix) -or (($allHandoffRoles | Where-Object { $_.StartsWith($techRolePrefix) }).Count -gt 0))
 $hasResearchRole = (($researchRoles -contains $assignee) -or (($allHandoffRoles | Where-Object { $_ -in $researchRoles }).Count -gt 0))
 $hasDeclarationEvidence = (($handoffMemoValues | Where-Object { $_ -match $declarationPattern }).Count -gt 0)
-$invalidDeclarations = @($handoffMemoValues | Where-Object { $_ -match '^DECLARATION\b' -and $_ -notmatch $declarationPattern })
+$invalidDeclarations = @($handoffMemoValues | Where-Object { $_ -notmatch $declarationPattern })
 $hasImprovementEvidence = ($notes -match $improvementPattern) -or (($handoffMemoValues | Where-Object { $_ -match $improvementPattern }).Count -gt 0)
 $invalidImprovementEntries = @(
   $handoffMemoValues | Where-Object {
@@ -306,7 +306,7 @@ if ($notes -match 'IMPROVEMENT_PROPOSAL' -and $notes -notmatch $improvementPatte
 $needsImprovementProposal = ($status -eq 'blocked') -or (($warningOpenCount -gt 0) -and ($status -in @('blocked', 'in_review', 'done')))
 
 if ($invalidDeclarations.Count -gt 0) {
-  Write-Error 'handoff memo contains invalid DECLARATION format'
+  Write-Error 'handoff memo must start with valid DECLARATION format'
   $hasErrors = $true
 }
 

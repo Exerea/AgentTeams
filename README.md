@@ -193,6 +193,26 @@ bash ./scripts/validate-repo.sh
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-at-init.ps1
 ```
 
+### Operation Smoke E2E（実運用URL）
+```powershell
+mkdir <workdir>
+Set-Location <workdir>
+git clone https://github.com/Exerea/AgentTeams.git
+Set-Location .\AgentTeams
+.\agentteams.cmd init https://github.com/Exerea/eye-texture-converter.git -w .\workspace --verbose
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-agentteams-operation.ps1 -MinTeams 3 -MinRoles 5
+```
+
+### Operation Smoke E2E（CI/ネット非依存）
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-agentteams-operation.ps1 -UseFixtureRepo -MinTeams 3 -MinRoles 5
+```
+
+### Operation Smoke 失敗時の切り分け順
+1. 宣言（`validate-chat-declaration.py`）
+2. task構造（`validate-task-state.ps1` / `validate-task-state.sh`）
+3. 読取証跡・分散証跡（`validate-operation-evidence.py`）
+
 ## CI 必須チェック
 ワークフロー: `.github/workflows/agentteams-validate.yml`
 
@@ -209,7 +229,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-at-init.ps1
 11. `validate-incident-registry`
 12. `validate-incident-sync-freshness`
 13. `detect-recurring-incident`
-14. `validate-secrets-linux`
+14. `operation-smoke-windows`
+15. `validate-secrets-linux`
 
 ## Branch Protection
 1. GitHub `Settings -> Branches -> Add rule` で `main` ルールを作成

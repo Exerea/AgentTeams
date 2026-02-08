@@ -24,6 +24,7 @@ def require_none(src: str, needles: list[str], path: Path, errors: list[str]) ->
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
     files = {
+        "root_agents": repo_root / "AGENTS.md",
         "agents": repo_root / ".codex" / "AGENTS.md",
         "coordinator": repo_root / ".codex" / "coordinator.md",
         "common_ops": repo_root / "shared" / "skills" / "common-ops.md",
@@ -53,6 +54,16 @@ def main() -> int:
         for err in errors:
             print(f"ERROR: {err}", file=sys.stderr)
         return 1
+
+    root_agents_minimum_refs = [
+        ".codex/AGENTS.md",
+        "固定開始宣言",
+        "【稼働口上】",
+        "DECLARATION",
+        "Get-Content .codex/AGENTS.md -Encoding utf8",
+        "Goal/Constraints/Acceptance",
+    ]
+    require_all(content["root_agents"], root_agents_minimum_refs, files["root_agents"], errors)
 
     # Core flags consistency
     for key in ("agents", "coordinator", "spec"):
