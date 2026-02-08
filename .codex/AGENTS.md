@@ -55,5 +55,7 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 ## Self-Update Policy
 - AgentTeams が AgentTeams 自身のリポジトリを更新することを許可する。
 - Self-update 実行は coordinator が最終決裁し、`scripts/self-update-agentteams.ps1` または `scripts/self-update-agentteams.sh` を使用する。
-- 原則フローは `validate-repo -> commit -> push`。
+- `-TaskFile` / `--task-file` は必須。対象 task は `status=done` のみ許可する。
+- 原則フローは `validate-repo -> validate-task-state -> git add -A -> validate-self-update-evidence -> commit -> push`。
+- `logs/e2e-ai-log.md` に `【稼働口上】` と `DECLARATION team=coordinator role=coordinator task=<task_id> action=self_update_commit_push` を追記し、同一commitでstageする。
 - 失敗時は push せず、task を `blocked` に戻して原因を `notes` に記録する。

@@ -46,6 +46,7 @@ v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口�
 - `scripts/validate-secrets.sh`
 - `scripts/validate-repo.ps1`
 - `scripts/validate-repo.sh`
+- `scripts/validate-self-update-evidence.py`
 
 ## 制御プレーン
 1. coordinator が要求を `Goal/Constraints/Acceptance` に分解
@@ -172,7 +173,9 @@ python3 ./scripts/validate-rule-examples-coverage.py
 
 ## AgentTeams Self-Update Contract
 - AgentTeams 自己改善 task は coordinator 決裁後にのみ `self-update-agentteams` スクリプトで反映する。
-- 反映順序は `validate-repo -> git commit -> git push` を固定する。
+- `--task-file` / `-TaskFile` を必須とし、`status=done` の task のみ self-update 実行可能とする。
+- 反映順序は `validate-repo -> validate-task-state -> git add -A -> validate-self-update-evidence -> git commit -> git push` を固定する。
+- `logs/e2e-ai-log.md` に `【稼働口上】` と `DECLARATION team=coordinator role=coordinator task=<task_id> action=self_update_commit_push` を追加し、同一commitでstageする。
 - 実行コマンド:
-  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\self-update-agentteams.ps1 -Message "chore(agentteams): self-update"`
-  - `bash ./scripts/self-update-agentteams.sh --message "chore(agentteams): self-update"`
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\self-update-agentteams.ps1 -TaskFile .\.codex\states\TASK-00100-member-tier-adr.yaml -Message "chore(agentteams): self-update" -NoPush`
+  - `bash ./scripts/self-update-agentteams.sh --task-file ./.codex/states/TASK-00100-member-tier-adr.yaml --message "chore(agentteams): self-update" --no-push`

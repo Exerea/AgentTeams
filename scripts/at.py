@@ -9,15 +9,17 @@ import sys
 
 
 MANAGED_MARKER = "<!-- AGENTTEAMS_MANAGED:ENTRY v1 -->"
+CHAT_LOG_RELATIVE_PATH = Path("logs") / "e2e-ai-log.md"
 
 
 def usage() -> None:
     print("Usage:")
     print(
-        "  at init <git-url> [-w|--workspace <path>] "
+        "  at init [<git-url>] [-w|--workspace <path>] "
         "[--agents-policy coexist|replace|keep] [--verbose]"
     )
     print("  at init --here [--agents-policy coexist|replace|keep] [--verbose]")
+    print("  at doctor [--verbose]")
 
 
 def fail(code: str, message: str, next_command: str | None = None) -> int:
@@ -69,6 +71,31 @@ def managed_agents_content() -> str:
         "2. `.codex/AGENTS.local.md` (previous local rules, optional)",
     ]
     return "\n".join(lines)
+
+
+def chat_log_template_content() -> str:
+    lines = [
+        "# E2E AI Log (v2.8)",
+        "",
+        "- declaration_protocol: 殿様/家老/足軽 + DECLARATION",
+        "",
+        "## Entries",
+        "- 2026-01-01T00:00:00Z 【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「導入確認」を務めます。導入確認を開始します。",
+        "- 2026-01-01T00:00:00Z DECLARATION team=coordinator role=coordinator task=N/A action=bootstrap_verification",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def ensure_chat_log_template(target_root: Path, verbose: bool) -> None:
+    log_path = target_root / CHAT_LOG_RELATIVE_PATH
+    if log_path.exists():
+        is_verbose_enabled(verbose, f"chat log already exists: {log_path.as_posix()}")
+        return
+
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("w", encoding="utf-8", newline="\n") as fh:
+        fh.write(chat_log_template_content())
+    is_verbose_enabled(verbose, f"created chat log template: {log_path.as_posix()}")
 
 
 def backup_agents_to_local_if_needed(target_agents: Path, local_agents: Path) -> None:
@@ -219,6 +246,54 @@ def resolve_target_root_here() -> Path | None:
     return Path(output.splitlines()[-1]).resolve()
 
 
+def doctor(verbose: bool) -> int:
+    target_root = resolve_target_root_here()
+    if target_root is None:
+        print("ERROR [AGENT_CONTEXT_MISSING] current directory is not inside a git repository.")
+        print("Next: at init")
+        return 1
+
+    print(f"OK [AGENT_CONTEXT_OK] git repository detected: {target_root.as_posix()}")
+
+    codex_agents = target_root / ".codex" / "AGENTS.md"
+    target_agents = target_root / "AGENTS.md"
+    local_agents = target_root / ".codex" / "AGENTS.local.md"
+
+    has_error = False
+    has_warning = False
+
+    if not codex_agents.exists():
+        has_error = True
+        print(f"ERROR [CODEX_RULES_MISSING] missing file: {codex_agents.as_posix()}")
+    else:
+        print(f"OK [CODEX_RULES_OK] found: {codex_agents.as_posix()}")
+
+    if not target_agents.exists():
+        has_error = True
+        print(f"ERROR [AGENTS_WRAPPER_MISSING] missing file: {target_agents.as_posix()}")
+    else:
+        target_content = read_text_or_empty(target_agents)
+        if MANAGED_MARKER in target_content:
+            print(f"OK [AGENTS_WRAPPER_OK] managed marker found in: {target_agents.as_posix()}")
+        else:
+            has_warning = True
+            print(
+                f"WARN [AGENTS_WRAPPER_MISSING] managed marker not found in: {target_agents.as_posix()}"
+            )
+
+    if local_agents.exists():
+        print(f"OK [AGENTS_LOCAL_PRESENT] local rules file present: {local_agents.as_posix()}")
+    else:
+        is_verbose_enabled(verbose, f"no local rules backup file: {local_agents.as_posix()}")
+
+    if has_error or has_warning:
+        print("Next: at init --here")
+        return 1
+
+    print("Next: at init --here")
+    return 0
+
+
 def init_with_clone(
     template_root: Path,
     repo_url: str,
@@ -262,6 +337,7 @@ def init_with_clone(
     if code != 0:
         return code
 
+    ensure_chat_log_template(target_root, verbose)
     print(f"at init completed: {target_root.as_posix()}")
     return 0
 
@@ -285,6 +361,7 @@ def init_here(template_root: Path, policy: str, verbose: bool) -> int:
     if code != 0:
         return code
 
+    ensure_chat_log_template(target_root, verbose)
     print(f"at init completed: {target_root.as_posix()}")
     return 0
 
@@ -387,13 +464,29 @@ def main(argv: list[str]) -> int:
     command = args[0]
     command_args = args[1:]
 
-    if command != "init":
+    if command not in {"init", "doctor"}:
         usage()
         return fail(
             "PATH_LAYOUT_INVALID",
             f"unknown subcommand: {command}",
-            "Usage: at init <git-url> | at init --here",
+            "Usage: at init [<git-url>] | at init --here | at doctor",
         )
+
+    if command == "doctor":
+        verbose = False
+        for token in command_args:
+            if token == "--verbose":
+                verbose = True
+                continue
+            return fail(
+                "PATH_LAYOUT_INVALID",
+                f"unknown option for doctor: {token}",
+                "Usage: at doctor [--verbose]",
+            )
+        code = ensure_git_available()
+        if code != 0:
+            return code
+        return doctor(verbose)
 
     code = ensure_git_available()
     if code != 0:
@@ -405,6 +498,15 @@ def main(argv: list[str]) -> int:
 
     if use_here:
         return init_here(template_root, policy, verbose)
+
+    if not repo_url and workspace == str(Path.cwd()):
+        auto_target = resolve_target_root_here()
+        if auto_target is not None:
+            is_verbose_enabled(
+                verbose,
+                "no repository url provided; running --here mode in current git repository.",
+            )
+            return init_here(template_root, policy, verbose)
 
     repo_url, resolve_code = resolve_repo_url_interactive(repo_url)
     if resolve_code != 0:

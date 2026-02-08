@@ -15,6 +15,12 @@ def require_all(src: str, needles: list[str], path: Path, errors: list[str]) -> 
             errors.append(f"{path.as_posix()} must include '{needle}'")
 
 
+def require_none(src: str, needles: list[str], path: Path, errors: list[str]) -> None:
+    for needle in needles:
+        if needle in src:
+            errors.append(f"{path.as_posix()} must not include '{needle}'")
+
+
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
     files = {
@@ -32,6 +38,7 @@ def main() -> int:
         "deprecation_rules": repo_root / ".codex" / "deprecation-rules.yaml",
         "self_update_ps1": repo_root / "scripts" / "self-update-agentteams.ps1",
         "self_update_sh": repo_root / "scripts" / "self-update-agentteams.sh",
+        "self_update_evidence": repo_root / "scripts" / "validate-self-update-evidence.py",
     }
 
     errors: list[str] = []
@@ -237,9 +244,39 @@ def main() -> int:
         "readme": ["self-update-agentteams.ps1", "self-update-agentteams.sh", "validate-repo"],
         "spec": ["self-update-agentteams.ps1", "self-update-agentteams.sh", "validate-repo"],
         "protocol": ["self_update_commit_push"],
+        "self_update_ps1": ["TaskFile", "validate-task-state.ps1", "validate-self-update-evidence.py"],
+        "self_update_sh": ["--task-file", "validate-task-state.sh", "validate-self-update-evidence.py"],
+        "self_update_evidence": [
+            "SELF_UPDATE_TASK_REQUIRED",
+            "SELF_UPDATE_TASK_PATH_INVALID",
+            "SELF_UPDATE_TASK_STATUS_INVALID",
+            "SELF_UPDATE_TASK_SCOPE_INVALID",
+            "SELF_UPDATE_LOG_NOT_STAGED",
+            "SELF_UPDATE_LOG_KOUJO_MISSING",
+            "SELF_UPDATE_LOG_DECLARATION_MISSING",
+            "SELF_UPDATE_LOG_DECLARATION_TASK_MISMATCH",
+        ],
     }
     for key, needles in self_update_refs.items():
         require_all(content[key], needles, files[key], errors)
+
+    self_update_task_file_doc_refs = {
+        "readme": ["--task-file", "-TaskFile", "self_update_commit_push"],
+        "coordinator": ["--task-file", "-TaskFile", "self_update_commit_push", "logs/e2e-ai-log.md"],
+        "spec": ["--task-file", "-TaskFile", "self_update_commit_push", "logs/e2e-ai-log.md"],
+        "protocol": ["self_update_commit_push", "logs/e2e-ai-log.md"],
+    }
+    for key, needles in self_update_task_file_doc_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    self_update_skip_validate_forbidden = {
+        "readme": ["--skip-validate", "-SkipValidate"],
+        "coordinator": ["--skip-validate", "-SkipValidate"],
+        "spec": ["--skip-validate", "-SkipValidate"],
+        "protocol": ["--skip-validate", "-SkipValidate"],
+    }
+    for key, needles in self_update_skip_validate_forbidden.items():
+        require_none(content[key], needles, files[key], errors)
 
     # Spec heading check
     if "Task 契約（v2.8）" not in content["spec"]:

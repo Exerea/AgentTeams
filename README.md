@@ -41,18 +41,25 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 - Linux/macOS で `at` を直接使う場合は最初に実行（`~/.local/bin/at` を作成）
 
 ```powershell
+at init
 at init <git-url>
 at init --here
 at init <git-url> -w <workspace-path>
+at doctor
 ```
 ```bash
+./at init
 ./at init <git-url>
 ./at init --here
 ./at init <git-url> -w <workspace-path>
+./at doctor
 ```
 - `--agents-policy coexist|replace|keep`（既定: `coexist`）
 - `at init` は clone 先ディレクトリを正規化し、`AGENTS.md` 競合を自動処理する
-- `at init` を引数なしで実行した場合は、Repository URL を対話で確認する
+- `at init` を引数なしで実行した場合:
+1. Git 管理下なら `--here` 相当で現在 repo に導入する
+2. Git 管理外なら Repository URL を対話で確認する
+- `at doctor` は現在 repo の導入状態を診断し、次に打つ 1 コマンドを提示する
 - `bootstrap-agent-teams` は `at init` の内部実装として呼び出される
 - `at init` 実行には `python`（または `py -3` / `python3`）が必要
 
@@ -72,6 +79,7 @@ bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
 - `chat`: 作業開始時・ロール切替時・Gate判断時に口上 + 宣言を行う
 - `chat`: 作業開始時・Gate判断時には必要性判断を行い、必要時は進言も併記する
 - 口上では `T-310` のような `task_id` 単独表現を禁止し、作業タイトルを必ず伝える
+- 標準ログ: `logs/e2e-ai-log.md`（`at init` で初回テンプレートを自動生成）
 - `task`: `handoffs.memo` の先頭行に宣言を記録する
 - 例: `DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic`
 
@@ -127,6 +135,14 @@ python3 ./scripts/detect-role-gaps.py
 python3 ./scripts/validate-role-gap-review.py
 ```
 
+### Chat Declaration
+```powershell
+python .\scripts\validate-chat-declaration.py
+```
+```bash
+python3 ./scripts/validate-chat-declaration.py
+```
+
 ### All-in-one
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1
@@ -152,7 +168,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-at-init.ps1
 7. `validate-rule-examples-coverage`
 8. `detect-role-gaps`
 9. `validate-role-gap-review`
-10. `validate-secrets-linux`
+10. `validate-chat-declaration`
+11. `validate-secrets-linux`
 
 ## Branch Protection
 1. GitHub `Settings -> Branches -> Add rule` で `main` ルールを作成
@@ -183,13 +200,17 @@ python3 ./scripts/validate-deprecated-assets.py
 AgentTeams 自身の改善を commit/push まで自動化したい場合は以下を使用する。
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\self-update-agentteams.ps1 -Message "chore(agentteams): self-update" 
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\self-update-agentteams.ps1 -TaskFile .\.codex\states\TASK-00100-member-tier-adr.yaml -Message "chore(agentteams): self-update" -NoPush
 ```
 
 ```bash
-bash ./scripts/self-update-agentteams.sh --message "chore(agentteams): self-update"
+bash ./scripts/self-update-agentteams.sh --task-file ./.codex/states/TASK-00100-member-tier-adr.yaml --message "chore(agentteams): self-update" --no-push
 ```
 
 ### オプション
-- `--skip-validate`: 事前の `validate-repo` をスキップ（通常は非推奨）
-- `--no-push`: commit のみ作成して push しない
+- `-TaskFile` / `--task-file` (required): 自己更新対象の `TASK-*.yaml`
+- `--no-push` / `-NoPush`: commit のみ作成して push しない
+
+### Self-Update Evidence
+- `logs/e2e-ai-log.md` に `【稼働口上】` と `DECLARATION team=coordinator role=coordinator task=<task_id> action=self_update_commit_push` を追記し、同一commitでstageする
+- `status=done` の task 以外は self-update を拒否する

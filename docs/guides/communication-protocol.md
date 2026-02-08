@@ -28,6 +28,7 @@
 - 適用面:
 - `chat`: 作業開始時・ロール切替時・Gate判断時（停止/再開/完了確定）に口上 + 宣言を出す
 - 口上は `task_id` 単独表現を禁止し、作業タイトルを必須記載する
+- `chat` の標準ログは `logs/e2e-ai-log.md` とする（`at init` でテンプレート生成）
 - `task`: `handoffs[].memo` の先頭行を宣言にする
 - `notes`: 主要判断時は任意で宣言を追記する
 - 必要性判断: 作業開始時と Gate判断時に「追加レビュー・追加Gate・MCP活用・先行調査」の要否を確認する
@@ -82,6 +83,20 @@ T-110をやります。
 6. `qa_review_required=true` の task は `qa-review-guild/code-critic` と `qa-review-guild/test-architect` 完了前にクローズしない。
 7. `status in (in_progress, in_review, done)` の task は、宣言フォーマットを含む handoff 証跡を最低1件持つ。
 
+## Chat Log Validation
+- 標準ログパス: `logs/e2e-ai-log.md`
+- 必須:
+1. `## Entries` セクションを保持する
+2. 先頭2エントリで `【稼働口上】` -> `DECLARATION ...` を連続記録する
+3. `実行` / `調べました` / `Ran` 系エントリ前に、直近宣言を残す
+- 検証コマンド:
+```powershell
+python .\scripts\validate-chat-declaration.py
+```
+```bash
+python3 ./scripts/validate-chat-declaration.py
+```
+
 ## MCP Usage Pattern
 1. MCP 使用前に口上と進言を出す。  
 `【進言】UI実動作確認のため DevTools MCP を併用します（理由: 画面回帰検知の精度向上）`
@@ -104,3 +119,11 @@ DECLARATION team=coordinator role=coordinator task=T-210 action=gate_recheck | I
 `【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「AgentTeams自己更新の反映」を務めます。検証完了後に commit/push を実施します。`
 - Handoff memo 例:
 `DECLARATION team=coordinator role=coordinator task=T-999 action=self_update_commit_push`
+- Self-update command examples:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\self-update-agentteams.ps1 -TaskFile .\.codex\states\TASK-00100-member-tier-adr.yaml -NoPush
+```
+```bash
+bash ./scripts/self-update-agentteams.sh --task-file ./.codex/states/TASK-00100-member-tier-adr.yaml --no-push
+```
+- `logs/e2e-ai-log.md` には `【稼働口上】` と `DECLARATION team=coordinator role=coordinator task=<task_id> action=self_update_commit_push` を追加し、同一commitでstageする。

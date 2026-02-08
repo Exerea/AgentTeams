@@ -9,9 +9,14 @@ $ErrorActionPreference = 'Stop'
 
 $templateRoot = [System.IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot -ChildPath '..'))
 $atCmd = Join-Path -Path $templateRoot -ChildPath 'at.cmd'
+$chatValidator = Join-Path -Path $templateRoot -ChildPath 'scripts/validate-chat-declaration.py'
 
 if (-not (Test-Path -LiteralPath $atCmd -PathType Leaf)) {
   throw "missing command launcher: $atCmd"
+}
+
+if (-not (Test-Path -LiteralPath $chatValidator -PathType Leaf)) {
+  throw "missing chat validator script: $chatValidator"
 }
 
 function Assert-Condition {
@@ -21,6 +26,58 @@ function Assert-Condition {
   )
   if (-not $Condition) {
     throw $Message
+  }
+}
+
+function Invoke-Python {
+  param(
+    [Parameter(Mandatory = $true)][string]$ScriptPath,
+    [string[]]$Arguments = @()
+  )
+
+  if (Get-Command python -ErrorAction SilentlyContinue) {
+    & python $ScriptPath @Arguments
+    return $LASTEXITCODE
+  }
+
+  if (Get-Command py -ErrorAction SilentlyContinue) {
+    & py -3 $ScriptPath @Arguments
+    return $LASTEXITCODE
+  }
+
+  throw 'python runtime not found (python or py -3 required)'
+}
+
+function Invoke-PythonCapture {
+  param(
+    [Parameter(Mandatory = $true)][string]$ScriptPath,
+    [string[]]$Arguments = @()
+  )
+
+  $output = @()
+  $exitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+      $output = & python $ScriptPath @Arguments 2>&1
+      $exitCode = $LASTEXITCODE
+    }
+    elseif (Get-Command py -ErrorAction SilentlyContinue) {
+      $output = & py -3 $ScriptPath @Arguments 2>&1
+      $exitCode = $LASTEXITCODE
+    }
+    else {
+      throw 'python runtime not found (python or py -3 required)'
+    }
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+
+  return [PSCustomObject]@{
+    ExitCode = $exitCode
+    Output = (($output | ForEach-Object { $_.ToString() }) -join "`n")
   }
 }
 
@@ -95,13 +152,30 @@ try {
   $workspacePrompt = Join-Path -Path $tempRoot -ChildPath 'workspace-prompt'
   $workspace = Join-Path -Path $tempRoot -ChildPath 'workspace'
 
-  Write-Host '[1/6] init without positional repo (stdin input)'
+  Write-Host '[1/8] doctor outside git repo'
+  $nonRepoPath = Join-Path -Path $tempRoot -ChildPath 'non-repo'
+  [System.IO.Directory]::CreateDirectory($nonRepoPath) | Out-Null
+  Push-Location $nonRepoPath
+  try {
+    $doctorOutsideOutput = & $atCmd doctor 2>&1
+    $doctorOutsideExit = $LASTEXITCODE
+    $doctorOutsideText = $doctorOutsideOutput -join "`n"
+    Assert-Condition -Condition ($doctorOutsideExit -ne 0) -Message 'at doctor outside git repo unexpectedly succeeded'
+    Assert-Condition -Condition ($doctorOutsideText.Contains('AGENT_CONTEXT_MISSING')) -Message 'AGENT_CONTEXT_MISSING not found for doctor outside git repo'
+    Assert-Condition -Condition ($doctorOutsideText.Contains('Next: at init')) -Message 'doctor outside git repo did not provide Next: at init'
+  }
+  finally {
+    Pop-Location
+  }
+
+  Write-Host '[2/8] init without positional repo (stdin input)'
   $remoteRepo | & $atCmd init -w $workspacePrompt --verbose
   if ($LASTEXITCODE -ne 0) { throw 'at init failed for stdin repository input' }
   $targetPromptRepo = Join-Path -Path $workspacePrompt -ChildPath 'sample-app'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetPromptRepo 'AGENTS.md') -PathType Leaf) -Message 'AGENTS.md missing after stdin init'
+  Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetPromptRepo 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'logs/e2e-ai-log.md missing after stdin init'
 
-  Write-Host '[2/6] new clone install'
+  Write-Host '[3/8] new clone install'
   & $atCmd init $remoteRepo -w $workspace --verbose
   if ($LASTEXITCODE -ne 0) { throw 'at init failed for clone mode' }
 
@@ -109,30 +183,46 @@ try {
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'AGENTS.md') -PathType Leaf) -Message 'AGENTS.md missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo '.codex/AGENTS.md') -PathType Leaf) -Message '.codex/AGENTS.md missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo '.github/workflows/agentteams-validate.yml') -PathType Leaf) -Message 'workflow missing after clone init'
+  Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'logs/e2e-ai-log.md missing after clone init'
 
-  Write-Host '[3/6] --here with coexist policy'
+  Write-Host '[4/8] doctor in installed repo'
+  Push-Location $targetRepo
+  try {
+    $doctorInstalledOutput = & $atCmd doctor 2>&1
+    $doctorInstalledExit = $LASTEXITCODE
+    Assert-Condition -Condition ($doctorInstalledExit -eq 0) -Message 'at doctor failed in installed repo'
+    $doctorInstalledText = $doctorInstalledOutput -join "`n"
+    Assert-Condition -Condition ($doctorInstalledText.Contains('AGENT_CONTEXT_OK')) -Message 'doctor output missing AGENT_CONTEXT_OK'
+    Assert-Condition -Condition ($doctorInstalledText.Contains('CODEX_RULES_OK')) -Message 'doctor output missing CODEX_RULES_OK'
+  }
+  finally {
+    Pop-Location
+  }
+
+  Write-Host '[5/8] default --here mode with coexist policy'
   $inplaceRepo = New-StandaloneRepo -BaseDir $tempRoot -Name 'inplace-coexist'
   Push-Location $inplaceRepo
   try {
-    & $atCmd init --here --agents-policy coexist --verbose
-    if ($LASTEXITCODE -ne 0) { throw 'at init --here (coexist) failed' }
+    & $atCmd init --agents-policy coexist --verbose
+    if ($LASTEXITCODE -ne 0) { throw 'at init (default here mode) failed' }
 
     $agentsPath = Join-Path $inplaceRepo 'AGENTS.md'
     $localAgentsPath = Join-Path $inplaceRepo '.codex/AGENTS.local.md'
     $agentsText = [System.IO.File]::ReadAllText($agentsPath, [System.Text.Encoding]::UTF8)
     Assert-Condition -Condition ($agentsText.Contains('AGENTTEAMS_MANAGED:ENTRY v1')) -Message 'managed marker missing after coexist policy'
     Assert-Condition -Condition (Test-Path -LiteralPath $localAgentsPath -PathType Leaf) -Message '.codex/AGENTS.local.md missing after coexist policy'
+    Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $inplaceRepo 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'logs/e2e-ai-log.md missing after default here mode'
   }
   finally {
     Pop-Location
   }
 
-  Write-Host '[4/6] idempotency check'
+  Write-Host '[6/8] idempotency + collision + policy branch checks'
   Push-Location $inplaceRepo
   try {
     $statusBefore = (& git status --porcelain) -join "`n"
-    & $atCmd init --here --agents-policy coexist
-    if ($LASTEXITCODE -ne 0) { throw 'second at init --here failed' }
+    & $atCmd init --agents-policy coexist
+    if ($LASTEXITCODE -ne 0) { throw 'second at init failed' }
     $statusAfter = (& git status --porcelain) -join "`n"
     Assert-Condition -Condition ($statusBefore -ceq $statusAfter) -Message 'git status changed after second run (idempotency failed)'
   }
@@ -140,13 +230,11 @@ try {
     Pop-Location
   }
 
-  Write-Host '[5/6] collision safety check'
   $collisionOutput = & $atCmd init $remoteRepo -w $workspace 2>&1
   $collisionExit = $LASTEXITCODE
   Assert-Condition -Condition ($collisionExit -ne 0) -Message 'collision case unexpectedly succeeded'
   Assert-Condition -Condition (($collisionOutput -join "`n").Contains('PATH_LAYOUT_INVALID')) -Message 'collision error code PATH_LAYOUT_INVALID not found'
 
-  Write-Host '[6/6] policy branch checks (keep/replace)'
   $keepRepo = New-StandaloneRepo -BaseDir $tempRoot -Name 'policy-keep'
   Push-Location $keepRepo
   try {
@@ -156,6 +244,7 @@ try {
     $afterKeep = [System.IO.File]::ReadAllText((Join-Path $keepRepo 'AGENTS.md'), [System.Text.Encoding]::UTF8)
     Assert-Condition -Condition ($legacyKeep -ceq $afterKeep) -Message 'keep policy modified AGENTS.md'
     Assert-Condition -Condition (-not (Test-Path -LiteralPath (Join-Path $keepRepo '.codex/AGENTS.local.md') -PathType Leaf)) -Message 'keep policy should not create .codex/AGENTS.local.md'
+    Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $keepRepo 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'keep policy should still create logs/e2e-ai-log.md'
   }
   finally {
     Pop-Location
@@ -173,6 +262,84 @@ try {
     Assert-Condition -Condition (Test-Path -LiteralPath $localReplacePath -PathType Leaf) -Message 'replace policy did not create .codex/AGENTS.local.md'
     $localReplaceText = [System.IO.File]::ReadAllText($localReplacePath, [System.Text.Encoding]::UTF8)
     Assert-Condition -Condition ($localReplaceText -ceq $legacyReplace) -Message 'replace policy backup content mismatch'
+    Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $replaceRepo 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'replace policy should create logs/e2e-ai-log.md'
+  }
+  finally {
+    Pop-Location
+  }
+
+  Write-Host '[7/8] nested layout e2e (AgentTeams/<product>)'
+  $nestedRoot = Join-Path -Path $tempRoot -ChildPath 'AgentTeams'
+  $nestedProduct = Join-Path -Path $nestedRoot -ChildPath 'eye-texture-converter'
+  [System.IO.Directory]::CreateDirectory($nestedProduct) | Out-Null
+  Push-Location $nestedProduct
+  try {
+    & git init | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'git init failed for nested product repo' }
+    [System.IO.File]::WriteAllText((Join-Path $nestedProduct 'README.md'), "# nested`n", [System.Text.UTF8Encoding]::new($false))
+    & git add . | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'git add failed for nested product repo' }
+    & git -c user.name='at-e2e' -c user.email='at-e2e@example.invalid' commit -m 'seed' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'git commit failed for nested product repo' }
+
+    & $atCmd init
+    if ($LASTEXITCODE -ne 0) { throw 'at init failed in nested layout product repo' }
+
+    Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $nestedProduct 'AGENTS.md') -PathType Leaf) -Message 'nested layout missing AGENTS.md after at init'
+    Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $nestedProduct '.codex/AGENTS.md') -PathType Leaf) -Message 'nested layout missing .codex/AGENTS.md after at init'
+    Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $nestedProduct 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'nested layout missing logs/e2e-ai-log.md after at init'
+  }
+  finally {
+    Pop-Location
+  }
+
+  Write-Host '[8/8] chat declaration validator success/failure'
+  Push-Location $targetRepo
+  try {
+    $validateOk = Invoke-PythonCapture -ScriptPath $chatValidator
+    Assert-Condition -Condition ($validateOk.ExitCode -eq 0) -Message "chat validator failed unexpectedly: $($validateOk.Output)"
+
+    $koujoTag = ([char[]](0x3010, 0x7A3C, 0x50CD, 0x53E3, 0x4E0A, 0x3011) -join '')
+
+    $badMissing = Join-Path $targetRepo 'logs/bad-missing-declaration.md'
+    $badMissingContent = @(
+      '# E2E AI Log (v2.8)',
+      '',
+      '- declaration_protocol: lord/chief/worker + DECLARATION',
+      '',
+      '## Entries',
+      "- 2026-01-01T00:00:00Z $koujoTag protocol bootstrap message",
+      '- 2026-01-01T00:00:01Z Ran git status -sb'
+    ) -join "`n"
+    [System.IO.File]::WriteAllText(
+      $badMissing,
+      "$badMissingContent`n",
+      [System.Text.UTF8Encoding]::new($false)
+    )
+
+    $validateMissing = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', $badMissing)
+    Assert-Condition -Condition ($validateMissing.ExitCode -ne 0) -Message 'chat validator unexpectedly passed missing declaration case'
+    Assert-Condition -Condition ($validateMissing.Output.Contains('CHAT_DECLARATION_MISSING')) -Message 'missing declaration case did not report CHAT_DECLARATION_MISSING'
+
+    $badFormat = Join-Path $targetRepo 'logs/bad-format-declaration.md'
+    $badFormatContent = @(
+      '# E2E AI Log (v2.8)',
+      '',
+      '- declaration_protocol: lord/chief/worker + DECLARATION',
+      '',
+      '## Entries',
+      "- 2026-01-01T00:00:00Z $koujoTag protocol bootstrap message",
+      '- 2026-01-01T00:00:01Z DECLARATION team=coordinator role=coordinator task=N/A'
+    ) -join "`n"
+    [System.IO.File]::WriteAllText(
+      $badFormat,
+      "$badFormatContent`n",
+      [System.Text.UTF8Encoding]::new($false)
+    )
+
+    $validateFormat = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', $badFormat)
+    Assert-Condition -Condition ($validateFormat.ExitCode -ne 0) -Message 'chat validator unexpectedly passed invalid declaration format case'
+    Assert-Condition -Condition ($validateFormat.Output.Contains('CHAT_DECLARATION_FORMAT_INVALID')) -Message 'invalid declaration format case did not report CHAT_DECLARATION_FORMAT_INVALID'
   }
   finally {
     Pop-Location

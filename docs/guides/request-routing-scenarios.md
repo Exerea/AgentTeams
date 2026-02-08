@@ -7,6 +7,8 @@
 ## Common Rules
 - 依頼は coordinator が受理し、`Goal/Constraints/Acceptance` に分解する。
 - `coordinatorとして処理して` は推奨文であり必須ではない。文言がなくても coordinator が受理する。
+- 作業ルートは「対象プロダクト repo のルート」を必須とする（`AgentTeams/<project>` 構成では `cd <project>` してから作業開始）。
+- 導入確認は対象 repo 直下で `at doctor` を実行し、未導入なら `at init`（または `at init --here`）で是正する。
 - 実務ロールは `task_file_path` で渡された `TASK-*.yaml` のみを更新する。
 - `_index.yaml` と `_role-gap-index.yaml` の更新は coordinator 専任。
 - handoff は `from/to/at/memo` を必須記録する。

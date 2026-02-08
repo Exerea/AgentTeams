@@ -10,17 +10,29 @@ Push-Location $repoRoot
 
 function Invoke-PythonScript {
   param(
-    [Parameter(Mandatory = $true)][string]$ScriptPath
+    [Parameter(Mandatory = $true)][string]$ScriptPath,
+    [string[]]$Arguments = @(),
+    [switch]$Quiet
   )
 
   if (Get-Command python -ErrorAction SilentlyContinue) {
-    & python $ScriptPath
+    if ($Quiet) {
+      & python $ScriptPath @Arguments *> $null
+    }
+    else {
+      & python $ScriptPath @Arguments
+    }
     if ($LASTEXITCODE -ne 0) { throw "python script failed: $ScriptPath" }
     return
   }
 
   if (Get-Command py -ErrorAction SilentlyContinue) {
-    & py -3 $ScriptPath
+    if ($Quiet) {
+      & py -3 $ScriptPath @Arguments *> $null
+    }
+    else {
+      & py -3 $ScriptPath @Arguments
+    }
     if ($LASTEXITCODE -ne 0) { throw "python script failed: $ScriptPath" }
     return
   }
@@ -38,11 +50,13 @@ try {
   }
 
   Invoke-PythonScript -ScriptPath .\scripts\validate-doc-consistency.py
+  Invoke-PythonScript -ScriptPath .\scripts\validate-self-update-evidence.py -Arguments @('--help') -Quiet
   Invoke-PythonScript -ScriptPath .\scripts\validate-scenarios-structure.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-rule-examples-coverage.py
   Invoke-PythonScript -ScriptPath .\scripts\detect-role-gaps.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-role-gap-review.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-deprecated-assets.py
+  Invoke-PythonScript -ScriptPath .\scripts\validate-chat-declaration.py
 
   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.ps1
   if ($LASTEXITCODE -ne 0) { throw 'validate-secrets.ps1 failed' }

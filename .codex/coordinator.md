@@ -144,6 +144,7 @@ otes または handoffs.memo に記録する。
 
 ## Self-Update Procedure
 1. AgentTeams 自己改善 task の Gate が全て通過していることを確認する。
-2. `scripts/self-update-agentteams.ps1` または `scripts/self-update-agentteams.sh` を実行する。
-3. `validate-repo` 成功後のみ commit/push を許可する。
-4. push 失敗時は task を `blocked` に戻し、`notes` に再試行条件を記録する。
+2. `status=done` の対象 task file を指定して `scripts/self-update-agentteams.ps1 -TaskFile <path>` または `scripts/self-update-agentteams.sh --task-file <path>` を実行する。
+3. 実行順序は `validate-repo -> validate-task-state -> git add -A -> validate-self-update-evidence -> commit -> push` を固定する。
+4. `logs/e2e-ai-log.md` に `【稼働口上】` と `DECLARATION team=coordinator role=coordinator task=<task_id> action=self_update_commit_push` を追記し、同一commitでstageする。
+5. push 失敗時は task を `blocked` に戻し、`notes` に再試行条件を記録する。
