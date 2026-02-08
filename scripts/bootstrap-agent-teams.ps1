@@ -55,6 +55,9 @@ if ($templateRoot.ToLowerInvariant() -eq $targetRoot.ToLowerInvariant()) {
 }
 
 $pathsToCopy = @(
+  'at',
+  'at.cmd',
+  'at.ps1',
   'AGENTS.md',
   'README.md',
   '.gitleaks.toml',

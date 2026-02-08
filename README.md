@@ -34,14 +34,30 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 - 依頼文テンプレは `User Request` をコピーして使う
 - `coordinatorとして処理して` は推奨文であり必須ではない（coordinator がデフォルト受理）
 
-### テンプレート展開
+### 導入コマンド（推奨）
+```powershell
+at init <git-url>
+at init --here
+at init <git-url> -w <workspace-path>
+```
+```bash
+./at init <git-url>
+./at init --here
+./at init <git-url> -w <workspace-path>
+```
+- `--agents-policy coexist|replace|keep`（既定: `coexist`）
+- `at init` は clone 先ディレクトリを正規化し、`AGENTS.md` 競合を自動処理する
+- `at init` を引数なしで実行した場合は、Repository URL を対話で確認する
+- `bootstrap-agent-teams` は `at init` の内部実装として呼び出される
+- `at init` 実行には `python`（または `py -3` / `python3`）が必要
+
+### 内部互換コマンド（通常は不要）
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-agent-teams.ps1 --target <project-path>
 ```
 ```bash
 bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
 ```
-- `bootstrap-agent-teams` は `.github/workflows/agentteams-validate.yml` を含む運用一式を展開する
 
 ## 稼働宣言プロトコル
 - 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
@@ -112,6 +128,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1
 ```
 ```bash
 bash ./scripts/validate-repo.sh
+```
+
+### `at init` E2E
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-at-init.ps1
 ```
 
 ## CI 必須チェック
