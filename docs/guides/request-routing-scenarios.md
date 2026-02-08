@@ -9,6 +9,8 @@
 - `coordinatorとして処理して` は推奨文であり必須ではない。文言がなくても coordinator が受理する。
 - 作業ルートは「対象プロダクト repo のルート」を必須とする（`AgentTeams/<project>` 構成では `cd <project>` してから作業開始）。
 - 導入確認は対象 repo 直下で `at doctor` を実行し、未導入なら `at init`（または `at init --here`）で是正する。
+- タスク開始前または CI で `at sync` を実行し、incident-registry キャッシュを更新する。
+- 事象再発を検知したら `at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>` を実行し、task証跡と incident-registry 候補を残す。
 - 実務ロールは `task_file_path` で渡された `TASK-*.yaml` のみを更新する。
 - `_index.yaml` と `_role-gap-index.yaml` の更新は coordinator 専任。
 - handoff は `from/to/at/memo` を必須記録する。

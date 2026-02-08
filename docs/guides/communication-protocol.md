@@ -101,6 +101,23 @@ python .\scripts\validate-chat-declaration.py
 python3 ./scripts/validate-chat-declaration.py
 ```
 
+## Cross-Repo Incident Registry
+- 正本: AgentTeams 本体リポジトリの `knowledge/incidents/*`
+- プロジェクト側キャッシュ: `.codex/cache/incident-registry.yaml`, `.codex/cache/incident-registry.meta.yaml`
+- タスク開始前/CI で `at sync` を実行し、incident-registry を同期する（作業中の自動 `git pull` は行わない）
+- 事象検知時は `at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>` を実行し、task 証跡と候補台帳を更新する
+- 検証コマンド:
+```powershell
+python .\scripts\validate-incident-registry.py
+python .\scripts\validate-incident-sync-freshness.py
+python .\scripts\detect-recurring-incident.py
+```
+```bash
+python3 ./scripts/validate-incident-registry.py
+python3 ./scripts/validate-incident-sync-freshness.py
+python3 ./scripts/detect-recurring-incident.py
+```
+
 ## MCP Usage Pattern
 1. MCP 使用前に口上と進言を出す。  
 `【進言】UI実動作確認のため DevTools MCP を併用します（理由: 画面回帰検知の精度向上）`

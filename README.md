@@ -46,6 +46,8 @@ at init <git-url>
 at init --here
 at init <git-url> -w <workspace-path>
 at doctor
+at sync
+at report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
 ```
 ```bash
 ./at init
@@ -53,6 +55,8 @@ at doctor
 ./at init --here
 ./at init <git-url> -w <workspace-path>
 ./at doctor
+./at sync
+./at report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
 ```
 - `--agents-policy coexist|replace|keep`（既定: `coexist`）
 - `at init` は clone 先ディレクトリを正規化し、`AGENTS.md` 競合を自動処理する
@@ -60,6 +64,9 @@ at doctor
 1. Git 管理下なら `--here` 相当で現在 repo に導入する
 2. Git 管理外なら Repository URL を対話で確認する
 - `at doctor` は現在 repo の導入状態を診断し、次に打つ 1 コマンドを提示する
+- `at sync` は AgentTeams 本体の incident-registry を `.codex/cache` へ同期する（タスク開始前 / CI で実行）
+- `at report-incident` は task の warning/notes と incident-registry 候補ファイルを更新する
+- 標準フロー: `at sync` -> `at report-incident` -> `validate-repo`
 - `bootstrap-agent-teams` は `at init` の内部実装として呼び出される
 - `at init` 実行には `python`（または `py -3` / `python3`）が必要
 
@@ -145,6 +152,18 @@ python .\scripts\validate-chat-declaration.py
 python3 ./scripts/validate-chat-declaration.py
 ```
 
+### Incident Registry
+```powershell
+python .\scripts\validate-incident-registry.py
+python .\scripts\validate-incident-sync-freshness.py
+python .\scripts\detect-recurring-incident.py
+```
+```bash
+python3 ./scripts/validate-incident-registry.py
+python3 ./scripts/validate-incident-sync-freshness.py
+python3 ./scripts/detect-recurring-incident.py
+```
+
 ### All-in-one
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1
@@ -171,12 +190,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-at-init.ps1
 8. `detect-role-gaps`
 9. `validate-role-gap-review`
 10. `validate-chat-declaration`
-11. `validate-secrets-linux`
+11. `validate-incident-registry`
+12. `validate-incident-sync-freshness`
+13. `detect-recurring-incident`
+14. `validate-secrets-linux`
 
 ## Branch Protection
 1. GitHub `Settings -> Branches -> Add rule` で `main` ルールを作成
 2. `Require status checks to pass before merging` を有効化
-3. 上記10チェックを Required checks に登録
+3. 上記14チェックを Required checks に登録
 
 ## 運用メモ
 - role gap 候補の状態遷移は `open -> triaged -> accepted/rejected -> implemented`

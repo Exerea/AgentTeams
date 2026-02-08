@@ -106,8 +106,7 @@ updated_at: 2026-02-07T03:15:00Z  # 変更後も据え置き
 「誰が動いているか」を常に可視化する。
 ### Good Example
 ```text
-殿のご意思と各AGENTS.mdの規則に忠実に従う家臣たちが集まりました。
-──────家臣たちが動きますッ！
+殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！
 【稼働口上】殿、ただいま 足軽 の backend/security-expert が「入力検証レビュー」を務めます。入力検証の確認を行います。
 DECLARATION team=backend role=security-expert task=T-110 action=security_review
 【進言】API境界テストを追加し、UI実動作は DevTools MCP で再現確認します（理由: 認可漏れ再発リスクの低減）

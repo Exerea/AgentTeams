@@ -150,6 +150,14 @@ python3 ./scripts/validate-role-gap-review.py
 python3 ./scripts/validate-rule-examples-coverage.py
 ```
 
+## Cross-Repo Incident Registry（v2.8.x）
+- 正本台帳は AgentTeams 本体の `knowledge/incidents/_index.yaml` と `knowledge/incidents/INC-*.yaml`。
+- 各プロジェクトは `at sync` で `.codex/cache/incident-registry.yaml` と `.codex/cache/incident-registry.meta.yaml` を更新する。
+- 事象発生時は `at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>` を実行し、task warning/notes と incident-registry 候補を更新する。
+- 再発判定は `scripts/detect-recurring-incident.py` が担当し、閾値（14日/3回/2task）到達時に root-cause 証跡を必須化する。
+- 同期鮮度検証は `scripts/validate-incident-sync-freshness.py`。CI では stale/missing を `INCIDENT_REGISTRY_STALE` として失敗化する。
+- 台帳スキーマ検証は `scripts/validate-incident-registry.py` が担当する。
+
 ## テストケース（v2.6b）
 1. `frontend/ux-specialist` に `instructions.md` と `skills/*.md` が存在
 2. `local_flags.ux_review_required` を持つ task が validate 成功

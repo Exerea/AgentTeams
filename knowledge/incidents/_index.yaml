@@ -1,0 +1,10 @@
+version: v1
+updated_at: 2026-02-08T00:00:00Z
+incidents:
+  - id: INC-20260208-sample-protocol-warning
+    file: knowledge/incidents/INC-20260208-sample-protocol-warning.yaml
+    fingerprint_warning_code: PROTO_FIELD_CASE_MISMATCH
+    fingerprint_role_pair: backend/api-architect->protocol-team/interaction-auditor
+    classification_non_malicious: true
+    status: monitoring
+    updated_at: 2026-02-08T00:00:00Z

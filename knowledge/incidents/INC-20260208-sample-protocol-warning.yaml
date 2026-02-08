@@ -1,0 +1,19 @@
+id: INC-20260208-sample-protocol-warning
+title: Protocol warning style mismatch recurs across projects
+fingerprint:
+  warning_code: PROTO_FIELD_CASE_MISMATCH
+  role_pair: backend/api-architect->protocol-team/interaction-auditor
+  gate: Protocol Gate
+  keywords: warning|protocol|handoff
+classification:
+  non_malicious: true
+first_seen_at: 2026-02-08T00:00:00Z
+last_seen_at: 2026-02-08T00:00:00Z
+occurrence_count_global: 1
+projects_seen:
+  - sample-project
+source_tasks:
+  - T-000
+suggested_root_actions: process
+status: monitoring
+updated_at: 2026-02-08T00:00:00Z

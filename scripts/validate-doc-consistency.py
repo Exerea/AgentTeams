@@ -210,6 +210,21 @@ def main() -> int:
             if needle.lower() not in src_lower:
                 errors.append(f"{path.as_posix()} must include '{needle}'")
 
+    # Cross-repo recurring incident flow consistency
+    incident_flow_refs = {
+        "readme": ["at sync", "at report-incident", "incident-registry"],
+        "protocol": ["at sync", "at report-incident", "incident-registry"],
+        "scenarios": ["at sync", "at report-incident", "incident-registry"],
+        "spec": ["at sync", "at report-incident", "incident-registry"],
+        "workflow": [
+            "validate-incident-registry",
+            "validate-incident-sync-freshness",
+            "detect-recurring-incident",
+        ],
+    }
+    for key, needles in incident_flow_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
     # Rule examples references
     rule_example_refs = {
         "agents": ["docs/guides/rule-examples.md"],

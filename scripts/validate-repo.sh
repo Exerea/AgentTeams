@@ -27,6 +27,13 @@ done
 "$py_bin" ./scripts/validate-role-gap-review.py
 "$py_bin" ./scripts/validate-deprecated-assets.py
 "$py_bin" ./scripts/validate-chat-declaration.py
+if [[ -f ./knowledge/incidents/_index.yaml ]]; then
+  "$py_bin" ./scripts/validate-incident-registry.py
+else
+  echo "WARN [INCIDENT_REGISTRY_MISSING] knowledge/incidents/_index.yaml not found; registry validation skipped."
+fi
+"$py_bin" ./scripts/validate-incident-sync-freshness.py
+"$py_bin" ./scripts/detect-recurring-incident.py
 bash ./scripts/validate-secrets.sh
 
 echo "repository validation passed"

@@ -45,7 +45,7 @@ if ($name -notmatch '^TASK-\d{5}-[a-z0-9]+(?:-[a-z0-9]+)*\.yaml$') {
   $hasErrors = $true
 }
 
-$lines = Get-Content -LiteralPath $Path
+$lines = Get-Content -LiteralPath $Path -Encoding utf8
 
 # Top-level keys
 $topKeys = New-Object System.Collections.Generic.List[string]

@@ -57,6 +57,14 @@ try {
   Invoke-PythonScript -ScriptPath .\scripts\validate-role-gap-review.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-deprecated-assets.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-chat-declaration.py
+  if (Test-Path -LiteralPath .\knowledge\incidents\_index.yaml -PathType Leaf) {
+    Invoke-PythonScript -ScriptPath .\scripts\validate-incident-registry.py
+  }
+  else {
+    Write-Host 'WARN [INCIDENT_REGISTRY_MISSING] knowledge/incidents/_index.yaml not found; registry validation skipped.'
+  }
+  Invoke-PythonScript -ScriptPath .\scripts\validate-incident-sync-freshness.py
+  Invoke-PythonScript -ScriptPath .\scripts\detect-recurring-incident.py
 
   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.ps1
   if ($LASTEXITCODE -ne 0) { throw 'validate-secrets.ps1 failed' }

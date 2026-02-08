@@ -126,6 +126,47 @@ jobs:
         run: |
           python scripts/validate-chat-declaration.py
 
+  validate-incident-registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Validate incident registry schema
+        run: |
+          python scripts/validate-incident-registry.py
+
+  validate-incident-sync-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Sync incident registry cache
+        run: |
+          git tag -f ci-sync-ref "$GITHUB_SHA"
+          python scripts/at.py sync --source . --ref ci-sync-ref --verbose
+      - name: Validate incident sync freshness (CI mode)
+        run: |
+          python scripts/validate-incident-sync-freshness.py --ci
+
+  detect-recurring-incident:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Sync incident registry cache
+        run: |
+          git tag -f ci-sync-ref "$GITHUB_SHA"
+          python scripts/at.py sync --source . --ref ci-sync-ref --verbose
+      - name: Detect recurring incidents
+        run: |
+          python scripts/detect-recurring-incident.py
+
   validate-secrets-linux:
     runs-on: ubuntu-latest
     steps:
