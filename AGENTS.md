@@ -5,6 +5,7 @@
 - 作業開始時に正本を読み込む。
 - PowerShell 読取時は文字化け防止のため UTF-8 を明示する。  
   `Get-Content .codex/AGENTS.md -Encoding utf8`
+- このリポジトリは各リポジトリに付属予定のリポジトリであり、対象となるgit cloneしたリポジトリにもAGENT.mdが出現することが想定される。つまりAGENT.mdが複数出現する。運用方針は基本的にAGENTTEAMS側の `.codex/AGENTS.md`に従うこと。
 
 ## Task Start Contract (Chat)
 - `固定開始宣言 -> 【稼働口上】 -> DECLARATION` の順を必須とする（固定開始宣言は Task 開始時のみ）。
