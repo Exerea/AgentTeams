@@ -39,6 +39,12 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 - ルール判定例: `docs/guides/rule-examples.md`
 - API正本: `docs/api/openapi.yaml`
 
+## Encoding Convention
+- 本リポジトリのテキスト正本（`*.md`, `*.yaml`, `*.yml`, `*.json`）は UTF-8 を前提とする。
+- PowerShell で文字化けを防ぐため、ファイル読取時は `-Encoding utf8` を明示する。
+- 例: `Get-Content .codex/AGENTS.md -Encoding utf8`
+- PowerShell での書き込み時も `Set-Content -Encoding utf8` または `Out-File -Encoding utf8` を使用する。
+
 ## Escalation
 - 担当外作業や競合判断は coordinator にエスカレーションする。
 - 追加対応の必要性（品質/安全性/検証性）を検知した場合は、coordinator が進言を先に行い、承認後に task を再分解する。

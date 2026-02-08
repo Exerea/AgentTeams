@@ -86,6 +86,7 @@ T-110をやります。
 5. 指示書更新は `protocol-team/prompt-optimizer` が対象ロール限定で実施する。
 6. `qa_review_required=true` の task は `qa-review-guild/code-critic` と `qa-review-guild/test-architect` 完了前にクローズしない。
 7. `status in (in_progress, in_review, done)` の task は、宣言フォーマットを含む handoff 証跡を最低1件持つ。
+8. PowerShell で repo 内テキストを読む際は文字化け防止のため `-Encoding utf8` を明示する。
 
 ## Chat Log Validation
 - 標準ログパス: `logs/e2e-ai-log.md`

@@ -15,6 +15,12 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 - ロール不足管理: `.codex/states/_role-gap-index.yaml`, `.codex/role-gap-rules.yaml`
 - 共通運用: `shared/skills/common-ops.md`
 
+## 記載・文字コードルール
+- ドキュメントと状態ファイルは UTF-8 前提（`*.md`, `*.yaml`, `*.yml`, `*.json`）。
+- PowerShell で読取する場合は文字化け防止のため `-Encoding utf8` を明示する。
+- 例: `Get-Content .codex/AGENTS.md -Encoding utf8`
+- PowerShell で書き込みする場合も `Set-Content -Encoding utf8` または `Out-File -Encoding utf8` を使用する。
+
 ## 主要方針（v2.8）
 1. `frontend/code-reviewer` は廃止済みとし、正規レビュー担当は `qa-review-guild/code-critic` とする（新規割当は validator で失敗）
 2. コード変更 task は `qa_review_required=true` を標準適用
