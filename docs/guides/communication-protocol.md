@@ -30,8 +30,10 @@
 - 適用面:
 - `chat`: Task開始時は `固定開始宣言 -> 口上 -> DECLARATION` の3行をこの順で出す（固定開始宣言はTask開始時のみ）
 - `chat`: ロール切替時・Gate判断時（停止/再開/完了確定）は口上 + 宣言を出す
+- `chat`: 宣言対象メッセージは `agentteams guard-chat` の送信前検証を通し、成功時のみログへ反映する
 - 口上は `task_id` 単独表現を禁止し、作業タイトルを必須記載する
 - `chat` の標準ログは `logs/e2e-ai-log.md` とする（`agentteams init` でテンプレート生成。互換: `at init`）
+- 送信前ガード設定は `.codex/runtime-policy.yaml` で管理する（`chat_guard.enabled=true`）
 - `task`: `handoffs[].memo` の先頭行を宣言にする
 - `notes`: 主要判断時は任意で宣言を追記する
 - 必要性判断: 作業開始時と Gate判断時に「追加レビュー・追加Gate・MCP活用・先行調査」の要否を確認する
@@ -88,18 +90,27 @@ T-110をやります。
 7. `status in (in_progress, in_review, done)` の task は、宣言フォーマットを含む handoff 証跡を最低1件持つ。
 8. PowerShell で repo 内テキストを読む際は文字化け防止のため `-Encoding utf8` を明示する。
 
+## Send Guard (Pre-send)
+- 実運用では宣言対象メッセージを直接ログへ追記しない。
+- 必須コマンド: `agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>`
+- 失敗時は送信をブロックし、`--emit-fixed-file` 指定時は修正テンプレートを出力する。
+- 成功時のみ `GUARD_SEND_OK ...` を先行追記し、続けてメッセージ本文をログへ反映する。
+
 ## Chat Log Validation
 - 標準ログパス: `logs/e2e-ai-log.md`
 - 必須:
 1. `## Entries` セクションを保持する
 2. Task開始時の先頭3エントリで `固定開始宣言` -> `【稼働口上】` -> `DECLARATION ...` を連続記録する
 3. `実行` / `調べました` / `Ran` 系エントリ前に、直近宣言を残す
+4. `chat_guard.enabled_at` 以降の宣言対象エントリは、直前に `GUARD_SEND_OK` を持つ
 - 検証コマンド:
 ```powershell
 python .\scripts\validate-chat-declaration.py
+python .\scripts\validate-chat-guard-usage.py
 ```
 ```bash
 python3 ./scripts/validate-chat-declaration.py
+python3 ./scripts/validate-chat-guard-usage.py
 ```
 
 ## Cross-Repo Incident Registry

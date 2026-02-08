@@ -146,6 +146,8 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 - 固定開始宣言（Task開始時のみ）: `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
 - 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 - 機械可読テンプレ: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+- 宣言対象メッセージは `agentteams guard-chat` の送信前検証を必須とする（成功時のみログ反映）。
+- 送信前ガード設定の正本: `.codex/runtime-policy.yaml`
 - `local_flags` では `backend_security_required` と `ux_review_required` を運用必須の判定軸として扱う。
 - `frontend/code-reviewer` は廃止済みであり、レビュー担当は `qa-review-guild/code-critic` を使用する。
 

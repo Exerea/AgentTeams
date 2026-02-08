@@ -22,7 +22,8 @@ def read_text(path: Path) -> str:
 
 
 def extract_non_negotiable_rules(agents_text: str) -> list[str]:
-    return [ln.strip() for ln in agents_text.splitlines() if re.match(r"^\d+\.\s+", ln.strip())]
+    pattern = re.compile(r"^(?:##\s*)?\d+\.\s+")
+    return [ln.strip() for ln in agents_text.splitlines() if pattern.match(ln.strip())]
 
 
 def extract_rule_sections(examples_text: str) -> dict[str, str]:

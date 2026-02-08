@@ -57,6 +57,7 @@ try {
   Invoke-PythonScript -ScriptPath .\scripts\validate-role-gap-review.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-deprecated-assets.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-chat-declaration.py
+  Invoke-PythonScript -ScriptPath .\scripts\validate-chat-guard-usage.py
   if (Test-Path -LiteralPath .\knowledge\incidents\_index.yaml -PathType Leaf) {
     Invoke-PythonScript -ScriptPath .\scripts\validate-incident-registry.py
   }

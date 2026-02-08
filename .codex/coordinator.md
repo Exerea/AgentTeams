@@ -15,6 +15,8 @@
 - 受理直後に次の機械可読宣言を行う。  
 `DECLARATION team=coordinator role=coordinator task=<task_id|N/A> action=intake`
 - 宣言は作業開始時・ロール切替時・Gate判断時（停止/再開/完了確定）・handoff時に必須（固定開始宣言はTask開始時のみ）。
+- 宣言対象メッセージは送信前に `agentteams guard-chat` で検証し、成功時のみ `logs/e2e-ai-log.md` へ追記する。
+- 送信前ガード設定は `.codex/runtime-policy.yaml` を正本とし、`chat_guard.enabled=true` を維持する。
 - 受理直後に必要性判断を行う。判断対象は「追加レビュー」「追加Gate」「MCP活用」「先行調査」の4点とし、必要時は殿様へ進言してから task 分解に進む。
 
 ## Task Decomposition Procedure
@@ -125,9 +127,10 @@
 `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
-7. 追加提案がある場合は口上の次行で進言を明示する。  
+7. `chat` の宣言対象メッセージは `agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>` 経由で送信する。
+8. 追加提案がある場合は口上の次行で進言を明示する。  
 `【進言】<提案内容>（理由: <risk_or_benefit>）`
-8. `frontend/code-reviewer` は廃止済みで新規割当禁止とする。`assignee` または `handoffs` に設定してはならない。検出時は `blocked` として `qa-review-guild/code-critic` へ再割当する。
+9. `frontend/code-reviewer` は廃止済みで新規割当禁止とする。`assignee` または `handoffs` に設定してはならない。検出時は `blocked` として `qa-review-guild/code-critic` へ再割当する。
 
 ## Index Ownership Rules
 - `_index.yaml` の更新は coordinator のみ行う。

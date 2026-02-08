@@ -54,6 +54,7 @@ agentteams init <git-url> -w <workspace-path>
 agentteams doctor
 agentteams sync
 agentteams report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
+agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
 ```
 ```bash
 ./agentteams init
@@ -63,6 +64,7 @@ agentteams report-incident --task-file <path> --code <warning_code> --summary "<
 ./agentteams doctor
 ./agentteams sync
 ./agentteams report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
+./agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
 ```
 ```powershell
 at init
@@ -72,6 +74,7 @@ at init <git-url> -w <workspace-path>
 at doctor
 at sync
 at report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
+at guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
 ```
 - Windows では `at` が `C:\Windows\System32\at.exe` に解決される場合があるため、`agentteams` を優先する
 - `--agents-policy coexist|replace|keep`（既定: `coexist`）
@@ -82,6 +85,7 @@ at report-incident --task-file <path> --code <warning_code> --summary "<text>" -
 - `agentteams doctor` は現在 repo の導入状態を診断し、次に打つ 1 コマンドを提示する
 - `agentteams sync` は AgentTeams 本体の incident-registry を `.codex/cache` へ同期する（タスク開始前 / CI で実行）
 - `agentteams report-incident` は task の warning/notes と incident-registry 候補ファイルを更新する
+- 通常チャット送信は `agentteams guard-chat` 経由を必須とし、送信前に宣言フォーマット違反をブロックする
 - 標準フロー: `agentteams sync` -> `agentteams report-incident` -> `validate-repo`
 - `bootstrap-agent-teams` は `agentteams init` の内部実装として呼び出される
 - `agentteams init` 実行には `python`（または `py -3` / `python3`）が必要
@@ -103,8 +107,10 @@ bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
 - `chat`: Task開始時は `固定開始宣言 -> 口上 -> DECLARATION` の3行をこの順で行う（固定開始宣言はTask開始時のみ）
 - `chat`: ロール切替時・Gate判断時は口上 + 宣言を行う
 - `chat`: 作業開始時・Gate判断時には必要性判断を行い、必要時は進言も併記する
+- `chat`: 送信前に `agentteams guard-chat` を実行し、成功時のみ `logs/e2e-ai-log.md` へ追記する
 - 口上では `T-310` のような `task_id` 単独表現を禁止し、作業タイトルを必ず伝える
 - 標準ログ: `logs/e2e-ai-log.md`（`agentteams init` で初回テンプレートを自動生成）
+- ガード運用設定: `.codex/runtime-policy.yaml`
 - `task`: `handoffs.memo` の先頭行に宣言を記録する
 - 例: `DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic`
 
@@ -168,6 +174,14 @@ python .\scripts\validate-chat-declaration.py
 python3 ./scripts/validate-chat-declaration.py
 ```
 
+### Chat Guard Usage
+```powershell
+python .\scripts\validate-chat-guard-usage.py
+```
+```bash
+python3 ./scripts/validate-chat-guard-usage.py
+```
+
 ### Incident Registry
 ```powershell
 python .\scripts\validate-incident-registry.py
@@ -209,9 +223,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-agentteams-op
 ```
 
 ### Operation Smoke 失敗時の切り分け順
-1. 宣言（`validate-chat-declaration.py`）
-2. task構造（`validate-task-state.ps1` / `validate-task-state.sh`）
-3. 読取証跡・分散証跡（`validate-operation-evidence.py`）
+1. 送信前ガード証跡（`validate-chat-guard-usage.py`）
+2. 宣言（`validate-chat-declaration.py`）
+3. task構造（`validate-task-state.ps1` / `validate-task-state.sh`）
+4. 読取証跡・分散証跡（`validate-operation-evidence.py`）
 
 ## CI 必須チェック
 ワークフロー: `.github/workflows/agentteams-validate.yml`
@@ -226,16 +241,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-agentteams-op
 8. `detect-role-gaps`
 9. `validate-role-gap-review`
 10. `validate-chat-declaration`
-11. `validate-incident-registry`
-12. `validate-incident-sync-freshness`
-13. `detect-recurring-incident`
-14. `operation-smoke-windows`
-15. `validate-secrets-linux`
+11. `validate-chat-guard-usage`
+12. `validate-incident-registry`
+13. `validate-incident-sync-freshness`
+14. `detect-recurring-incident`
+15. `operation-smoke-windows`
+16. `validate-secrets-linux`
 
 ## Branch Protection
 1. GitHub `Settings -> Branches -> Add rule` で `main` ルールを作成
 2. `Require status checks to pass before merging` を有効化
-3. 上記14チェックを Required checks に登録
+3. 上記16チェックを Required checks に登録
 
 ## 運用メモ
 - role gap 候補の状態遷移は `open -> triaged -> accepted/rejected -> implemented`

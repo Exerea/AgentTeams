@@ -12,6 +12,8 @@
 - 固定開始宣言: `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
 - 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 - 機械可読テンプレ: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
+- 宣言対象メッセージは送信前に `agentteams guard-chat` を実行し、成功時のみ `logs/e2e-ai-log.md` へ反映する。
+- 送信前ガード設定の正本: `.codex/runtime-policy.yaml`
 
 ## Coordinator Intake / Decomposition
 - coordinator は依頼文に特定の呼び出し文言がなくても受理する。

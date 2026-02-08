@@ -37,6 +37,7 @@ def main() -> int:
         "role_gap_rules": repo_root / ".codex" / "role-gap-rules.yaml",
         "role_gap_index": repo_root / ".codex" / "states" / "_role-gap-index.yaml",
         "deprecation_rules": repo_root / ".codex" / "deprecation-rules.yaml",
+        "runtime_policy": repo_root / ".codex" / "runtime-policy.yaml",
         "self_update_ps1": repo_root / "scripts" / "self-update-agentteams.ps1",
         "self_update_sh": repo_root / "scripts" / "self-update-agentteams.sh",
         "self_update_evidence": repo_root / "scripts" / "validate-self-update-evidence.py",
@@ -285,6 +286,17 @@ def main() -> int:
         "deprecation_rules": ["retired_roles", "retired_paths"],
     }
     for key, needles in deprecation_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    # Chat guard contract consistency
+    chat_guard_refs = {
+        "readme": ["guard-chat", "validate-chat-guard-usage.py", ".codex/runtime-policy.yaml"],
+        "protocol": ["guard-chat", "GUARD_SEND_OK", ".codex/runtime-policy.yaml"],
+        "coordinator": ["guard-chat", ".codex/runtime-policy.yaml"],
+        "workflow": ["validate-chat-guard-usage"],
+        "runtime_policy": ["chat_guard", "enabled:", "enabled_at:", "transport:", "strict_mode:"],
+    }
+    for key, needles in chat_guard_refs.items():
         require_all(content[key], needles, files[key], errors)
 
     # Self-update policy consistency

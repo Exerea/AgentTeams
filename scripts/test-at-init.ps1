@@ -17,6 +17,7 @@ $managedAgentsRequiredTokens = @(
   '固定開始宣言',
   '【稼働口上】',
   'DECLARATION',
+  'agentteams guard-chat',
   'Get-Content .codex/AGENTS.md -Encoding utf8',
   'Goal/Constraints/Acceptance'
 )
@@ -213,6 +214,9 @@ try {
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'agentteams.cmd') -PathType Leaf) -Message 'agentteams.cmd missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'agentteams.ps1') -PathType Leaf) -Message 'agentteams.ps1 missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo '.github/workflows/agentteams-validate.yml') -PathType Leaf) -Message 'workflow missing after clone init'
+  Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'scripts/guard-chat.py') -PathType Leaf) -Message 'guard-chat script missing after clone init'
+  Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'scripts/validate-chat-guard-usage.py') -PathType Leaf) -Message 'guard usage validator missing after clone init'
+  Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo '.codex/runtime-policy.yaml') -PathType Leaf) -Message 'runtime policy missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'logs/e2e-ai-log.md missing after clone init'
   $chatLogText = [System.IO.File]::ReadAllText((Join-Path $targetRepo 'logs/e2e-ai-log.md'), [System.Text.Encoding]::UTF8)
   Assert-Condition -Condition ($chatLogText.Contains($globalKickoff)) -Message 'chat log template missing global kickoff declaration'

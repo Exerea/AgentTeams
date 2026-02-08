@@ -101,6 +101,29 @@ function Invoke-TaskValidatorCapture {
   }
 }
 
+function Invoke-AgentTeamsCapture {
+  param(
+    [Parameter(Mandatory = $true)][string[]]$Arguments
+  )
+
+  $output = @()
+  $exitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $output = & $agentteamsCmd @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+
+  return [PSCustomObject]@{
+    ExitCode = $exitCode
+    Output = (($output | ForEach-Object { $_.ToString() }) -join "`n")
+  }
+}
+
 function Write-Utf8File {
   param(
     [Parameter(Mandatory = $true)][string]$Path,
@@ -308,10 +331,12 @@ try {
   Assert-Condition -Condition (Test-Path -LiteralPath $targetRepo -PathType Container) -Message "target repo missing: $targetRepo"
 
   $chatValidator = Join-Path -Path $targetRepo -ChildPath 'scripts/validate-chat-declaration.py'
+  $guardUsageValidator = Join-Path -Path $targetRepo -ChildPath 'scripts/validate-chat-guard-usage.py'
   $operationValidator = Join-Path -Path $targetRepo -ChildPath 'scripts/validate-operation-evidence.py'
   $taskValidator = Join-Path -Path $targetRepo -ChildPath 'scripts/validate-task-state.ps1'
 
   Assert-Condition -Condition (Test-Path -LiteralPath $chatValidator -PathType Leaf) -Message "missing chat validator: $chatValidator"
+  Assert-Condition -Condition (Test-Path -LiteralPath $guardUsageValidator -PathType Leaf) -Message "missing guard usage validator: $guardUsageValidator"
   Assert-Condition -Condition (Test-Path -LiteralPath $operationValidator -PathType Leaf) -Message "missing operation validator: $operationValidator"
   Assert-Condition -Condition (Test-Path -LiteralPath $taskValidator -PathType Leaf) -Message "missing task validator: $taskValidator"
 
@@ -325,17 +350,72 @@ try {
 
     $logPath = Join-Path -Path $targetRepo -ChildPath 'logs/e2e-ai-log.md'
     Assert-Condition -Condition (Test-Path -LiteralPath $logPath -PathType Leaf) -Message "missing log: $logPath"
-    $logLines = @(
-      "- $(Get-UtcIso) DECLARATION team=coordinator role=coordinator task=T-999 action=read_canonical_rules"
-      "- $(Get-UtcIso) 実行 Get-Content -Path .codex/AGENTS.md -Encoding utf8"
-      "- $(Get-UtcIso) DECLARATION team=coordinator role=coordinator task=T-999 action=read_adr_context"
-      "- $(Get-UtcIso) 実行 Get-ChildItem -Path docs/adr/ -File"
+    $messageDir = Join-Path -Path $targetRepo -ChildPath '.codex/tmp'
+    [System.IO.Directory]::CreateDirectory($messageDir) | Out-Null
+
+    $taskStartMessage = Join-Path -Path $messageDir -ChildPath 'guard-task-start.txt'
+    Write-Utf8File -Path $taskStartMessage -Content @'
+殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！
+【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「operation smoke evidence」を務めます。運用スモークテストを開始します。
+DECLARATION team=coordinator role=coordinator task=T-999 action=operation_smoke_start
+'@
+    $taskStartSend = Invoke-AgentTeamsCapture -Arguments @(
+      'guard-chat',
+      '--event', 'task_start',
+      '--team', 'coordinator',
+      '--role', 'coordinator',
+      '--task', 'T-999',
+      '--task-title', 'operation smoke evidence',
+      '--message-file', $taskStartMessage,
+      '--task-file', $taskFileRel,
+      '--log', 'logs/e2e-ai-log.md'
     )
-    Add-Content -LiteralPath $logPath -Value $logLines -Encoding utf8
+    Assert-Condition -Condition ($taskStartSend.ExitCode -eq 0) -Message "guard-chat task_start failed`n$($taskStartSend.Output)"
+
+    $readRulesMessage = Join-Path -Path $messageDir -ChildPath 'guard-read-rules.txt'
+    Write-Utf8File -Path $readRulesMessage -Content @'
+【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「AGENTS正本確認」を務めます。正本読取を記録します。
+DECLARATION team=coordinator role=coordinator task=T-999 action=read_canonical_rules
+実行 Get-Content -Path .codex/AGENTS.md -Encoding utf8
+'@
+    $readRulesSend = Invoke-AgentTeamsCapture -Arguments @(
+      'guard-chat',
+      '--event', 'gate',
+      '--team', 'coordinator',
+      '--role', 'coordinator',
+      '--task', 'T-999',
+      '--task-title', 'AGENTS正本確認',
+      '--message-file', $readRulesMessage,
+      '--task-file', $taskFileRel,
+      '--log', 'logs/e2e-ai-log.md'
+    )
+    Assert-Condition -Condition ($readRulesSend.ExitCode -eq 0) -Message "guard-chat read rules failed`n$($readRulesSend.Output)"
+
+    $readAdrMessage = Join-Path -Path $messageDir -ChildPath 'guard-read-adr.txt'
+    Write-Utf8File -Path $readAdrMessage -Content @'
+【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「ADR読取確認」を務めます。ADR読取を記録します。
+DECLARATION team=coordinator role=coordinator task=T-999 action=read_adr_context
+実行 Get-ChildItem -Path docs/adr/ -File
+'@
+    $readAdrSend = Invoke-AgentTeamsCapture -Arguments @(
+      'guard-chat',
+      '--event', 'gate',
+      '--team', 'coordinator',
+      '--role', 'coordinator',
+      '--task', 'T-999',
+      '--task-title', 'ADR読取確認',
+      '--message-file', $readAdrMessage,
+      '--task-file', $taskFileRel,
+      '--log', 'logs/e2e-ai-log.md'
+    )
+    Assert-Condition -Condition ($readAdrSend.ExitCode -eq 0) -Message "guard-chat read adr failed`n$($readAdrSend.Output)"
 
     Write-Host '[3/5] positive validation checks'
     $chatOk = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', 'logs/e2e-ai-log.md')
     Assert-Condition -Condition ($chatOk.ExitCode -eq 0) -Message "validate-chat-declaration failed`n$($chatOk.Output)"
+
+    $guardOk = Invoke-PythonCapture -ScriptPath $guardUsageValidator -Arguments @('--log', 'logs/e2e-ai-log.md')
+    Assert-Condition -Condition ($guardOk.ExitCode -eq 0) -Message "validate-chat-guard-usage failed`n$($guardOk.Output)"
 
     $taskOk = Invoke-TaskValidatorCapture -TaskValidatorPath $taskValidator -TaskPath $taskFile
     Assert-Condition -Condition ($taskOk.ExitCode -eq 0) -Message "validate-task-state failed`n$($taskOk.Output)"
@@ -365,6 +445,49 @@ try {
     $badChatResult = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', $badChatLog)
     Assert-Condition -Condition ($badChatResult.ExitCode -ne 0) -Message 'bad chat log unexpectedly passed'
     Assert-Condition -Condition ($badChatResult.Output.Contains('CHAT_KOUJO_MISSING')) -Message 'bad chat log did not report CHAT_KOUJO_MISSING'
+
+    $badGuardLog = Join-Path -Path $targetRepo -ChildPath 'logs/bad-guard-usage.md'
+    $badGuardContent = @(
+      '# E2E AI Log (v2.8)',
+      '',
+      '- declaration_protocol: Task開始時は「固定開始宣言 -> 稼働口上 -> DECLARATION」の3行を必須化',
+      '',
+      '## Entries',
+      '- 2026-02-08T00:00:00Z 殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！',
+      '- 2026-02-08T00:00:01Z 【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「ガード欠落テスト」を務めます。送信経路を点検します。',
+      '- 2026-02-08T00:00:02Z DECLARATION team=coordinator role=coordinator task=T-999 action=guard_bypass_test'
+    ) -join "`n"
+    Write-Utf8File -Path $badGuardLog -Content "$badGuardContent`n"
+
+    $badGuardResult = Invoke-PythonCapture -ScriptPath $guardUsageValidator -Arguments @('--log', $badGuardLog)
+    Assert-Condition -Condition ($badGuardResult.ExitCode -ne 0) -Message 'bad guard usage log unexpectedly passed'
+    Assert-Condition -Condition ($badGuardResult.Output.Contains('CHAT_GUARD_USAGE_MISSING')) -Message 'bad guard usage log did not report CHAT_GUARD_USAGE_MISSING'
+
+    $invalidGuardMessage = Join-Path -Path $messageDir -ChildPath 'guard-invalid-task-start.txt'
+    Write-Utf8File -Path $invalidGuardMessage -Content @'
+【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「不正task_start」を務めます。順序違反です。
+DECLARATION team=coordinator role=coordinator task=T-999 action=invalid_task_start
+'@
+    $fixedTemplatePath = Join-Path -Path $messageDir -ChildPath 'guard-fixed-template.txt'
+    if (Test-Path -LiteralPath $fixedTemplatePath) {
+      Remove-Item -LiteralPath $fixedTemplatePath -Force
+    }
+    $guardBlocked = Invoke-AgentTeamsCapture -Arguments @(
+      'guard-chat',
+      '--event', 'task_start',
+      '--team', 'coordinator',
+      '--role', 'coordinator',
+      '--task', 'T-999',
+      '--task-title', '不正task_start',
+      '--message-file', $invalidGuardMessage,
+      '--task-file', $taskFileRel,
+      '--log', 'logs/e2e-ai-log.md',
+      '--emit-fixed-file', $fixedTemplatePath
+    )
+    Assert-Condition -Condition ($guardBlocked.ExitCode -ne 0) -Message 'invalid guard-chat message unexpectedly passed'
+    $guardErrorFound = $guardBlocked.Output.Contains('CHAT_ENTRY_FORMAT_INVALID') -or $guardBlocked.Output.Contains('CHAT_GLOBAL_KICKOFF_MISSING')
+    Assert-Condition -Condition $guardErrorFound -Message 'invalid guard-chat did not report expected task_start declaration failure'
+    Assert-Condition -Condition (Test-Path -LiteralPath $fixedTemplatePath -PathType Leaf) -Message 'guard-chat did not emit fixed template file'
 
     $badReadLog = Join-Path -Path $targetRepo -ChildPath 'logs/bad-read-evidence.md'
     $badReadContent = @(

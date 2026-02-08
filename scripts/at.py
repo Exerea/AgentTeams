@@ -63,12 +63,22 @@ def usage() -> None:
         "  agentteams report-incident --task-file <path> --code <warning_code> "
         "--summary <text> --project <name> [--verbose]"
     )
+    print(
+        "  agentteams guard-chat --event <task_start|role_switch|gate> --team <team> "
+        "--role <role> --task <task_id|N/A> --task-title <title> --message-file <path> "
+        "--task-file <TASK-*.yaml> [--log <path>] [--emit-fixed-file <path>] [--verbose]"
+    )
     print("Compatibility aliases:")
     print(
         "  at init [<git-url>] [-w|--workspace <path>] "
         "[--agents-policy coexist|replace|keep] [--verbose]"
     )
     print("  at init --here [--agents-policy coexist|replace|keep] [--verbose]")
+    print(
+        "  at guard-chat --event <task_start|role_switch|gate> --team <team> "
+        "--role <role> --task <task_id|N/A> --task-title <title> --message-file <path> "
+        "--task-file <TASK-*.yaml> [--log <path>] [--emit-fixed-file <path>] [--verbose]"
+    )
     if os.name == "nt":
         print("  .\\at.cmd <subcommand> ...")
 
@@ -89,6 +99,15 @@ def warn(code: str, message: str, next_command: str | None = None) -> None:
 def is_verbose_enabled(verbose: bool, message: str) -> None:
     if verbose:
         print(f"[at] {message}")
+
+
+def print_safe(message: str) -> None:
+    try:
+        print(message)
+    except UnicodeEncodeError:
+        encoding = sys.stdout.encoding or "utf-8"
+        safe = message.encode(encoding, errors="replace").decode(encoding, errors="replace")
+        print(safe)
 
 
 def now_utc_iso() -> str:
@@ -185,6 +204,7 @@ def managed_agents_content() -> str:
         "- 固定開始宣言: `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`",
         "- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`",
         "- 機械可読: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`",
+        "- 通常送信は `agentteams guard-chat` 経由で事前検証してからログ追記する",
         "",
         "## Coordinator Intake / Decomposition",
         "- coordinator accepts requests by default and decomposes by `Goal/Constraints/Acceptance`.",
@@ -276,7 +296,7 @@ def run_cmd(cmd: list[str], cwd: Path | None = None, print_output: bool = True) 
     )
     output = proc.stdout.strip()
     if output and print_output:
-        print(output)
+        print_safe(output)
     return proc.returncode, output
 
 
@@ -1520,6 +1540,21 @@ def report_incident(
     return 0
 
 
+def guard_chat(command_args: list[str]) -> int:
+    repo_root = Path(__file__).resolve().parent.parent
+    guard_script = repo_root / "scripts" / "guard-chat.py"
+    if not guard_script.exists():
+        return fail(
+            "PATH_LAYOUT_INVALID",
+            f"missing guard script: {guard_script.as_posix()}",
+            "Reinstall AgentTeams and retry: agentteams init --here",
+        )
+
+    command = [sys.executable, str(guard_script), *command_args]
+    code, _ = run_cmd(command)
+    return code
+
+
 def main(argv: list[str]) -> int:
     template_root = Path(__file__).resolve().parent.parent
     args = [arg for arg in argv if arg is not None]
@@ -1537,12 +1572,12 @@ def main(argv: list[str]) -> int:
     command = args[0]
     command_args = args[1:]
 
-    if command not in {"init", "doctor", "sync", "report-incident"}:
+    if command not in {"init", "doctor", "sync", "report-incident", "guard-chat"}:
         usage()
         return fail(
             "PATH_LAYOUT_INVALID",
             f"unknown subcommand: {command}",
-            "Usage: agentteams init [<git-url>] | agentteams init --here | agentteams doctor | agentteams sync | agentteams report-incident",
+            "Usage: agentteams init [<git-url>] | agentteams init --here | agentteams doctor | agentteams sync | agentteams report-incident | agentteams guard-chat",
         )
 
     if command == "doctor":
@@ -1593,6 +1628,9 @@ def main(argv: list[str]) -> int:
         if parse_code != 0:
             return parse_code
         return sync_incident_registry(template_root, source, ref, offline_ok, verbose)
+
+    if command == "guard-chat":
+        return guard_chat(command_args)
 
     task_file, warning_code, summary, project, verbose, parse_code = parse_report_incident_args(command_args)
     if parse_code != 0:

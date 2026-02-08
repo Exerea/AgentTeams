@@ -27,6 +27,7 @@ done
 "$py_bin" ./scripts/validate-role-gap-review.py
 "$py_bin" ./scripts/validate-deprecated-assets.py
 "$py_bin" ./scripts/validate-chat-declaration.py
+"$py_bin" ./scripts/validate-chat-guard-usage.py
 if [[ -f ./knowledge/incidents/_index.yaml ]]; then
   "$py_bin" ./scripts/validate-incident-registry.py
 else
