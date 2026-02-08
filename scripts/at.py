@@ -32,20 +32,45 @@ ALLOWED_WARNING_CODES = {
     "PROTO_HANDOFF_CONTEXT_MISSING",
 }
 
+PRIMARY_CLI = "agentteams"
+WINDOWS_COMPAT_CLI = r".\at.cmd"
+UNIX_COMPAT_CLI = "./at"
+
+
+def cli_command(command: str, include_compat: bool = False) -> str:
+    normalized = command.strip()
+    primary = f"{PRIMARY_CLI} {normalized}".strip()
+    if not include_compat:
+        return primary
+
+    compat_cli = WINDOWS_COMPAT_CLI if os.name == "nt" else UNIX_COMPAT_CLI
+    compat = f"{compat_cli} {normalized}".strip()
+    return f"{primary} (compat: {compat})"
+
 
 def usage() -> None:
     print("Usage:")
+    print(
+        "  agentteams init [<git-url>] [-w|--workspace <path>] "
+        "[--agents-policy coexist|replace|keep] [--verbose]"
+    )
+    print("  agentteams init --here [--agents-policy coexist|replace|keep] [--verbose]")
+    print("  agentteams doctor [--verbose]")
+    print(
+        "  agentteams sync [--source <git-url>] [--ref <tag|branch>] [--offline-ok] [--verbose]"
+    )
+    print(
+        "  agentteams report-incident --task-file <path> --code <warning_code> "
+        "--summary <text> --project <name> [--verbose]"
+    )
+    print("Compatibility aliases:")
     print(
         "  at init [<git-url>] [-w|--workspace <path>] "
         "[--agents-policy coexist|replace|keep] [--verbose]"
     )
     print("  at init --here [--agents-policy coexist|replace|keep] [--verbose]")
-    print("  at doctor [--verbose]")
-    print("  at sync [--source <git-url>] [--ref <tag|branch>] [--offline-ok] [--verbose]")
-    print(
-        "  at report-incident --task-file <path> --code <warning_code> "
-        "--summary <text> --project <name> [--verbose]"
-    )
+    if os.name == "nt":
+        print("  .\\at.cmd <subcommand> ...")
 
 
 def fail(code: str, message: str, next_command: str | None = None) -> int:
@@ -196,7 +221,7 @@ def apply_agents_policy(target_root: Path, policy: str, verbose: bool) -> int:
         return fail(
             "BOOTSTRAP_FAILED",
             f"missing required file: {codex_agents.as_posix()}",
-            "Retry: at init --here",
+            f"Retry: {cli_command('init --here', include_compat=True)}",
         )
 
     target_agents = target_root / "AGENTS.md"
@@ -242,12 +267,25 @@ def run_cmd(cmd: list[str], cwd: Path | None = None, print_output: bool = True) 
     return proc.returncode, output
 
 
+def normalized_path(path: Path) -> str:
+    resolved = path.resolve()
+    text = resolved.as_posix()
+    return text.lower() if os.name == "nt" else text
+
+
+def paths_equal(left: Path, right: Path) -> bool:
+    try:
+        return left.resolve().samefile(right.resolve())
+    except (FileNotFoundError, OSError):
+        return normalized_path(left) == normalized_path(right)
+
+
 def ensure_git_available() -> int:
     if shutil.which("git") is None:
         return fail(
             "PATH_LAYOUT_INVALID",
             "git command not found.",
-            "Install git, then retry: at init <git-url>",
+            f"Install git, then retry: {cli_command('init <git-url>', include_compat=True)}",
         )
     return 0
 
@@ -270,12 +308,19 @@ def resolve_repo_url_interactive(repo_url: str) -> tuple[str, int]:
         return "", fail(
             "PATH_LAYOUT_INVALID",
             "repository url is required.",
-            "Usage: at init <git-url> | at init --here",
+            "Usage: agentteams init <git-url> | agentteams init --here",
         )
     return entered, 0
 
 
-def invoke_bootstrap(template_root: Path, target_root: Path) -> int:
+def invoke_bootstrap(template_root: Path, target_root: Path, verbose: bool = False) -> int:
+    if paths_equal(template_root, target_root):
+        is_verbose_enabled(
+            verbose,
+            "target root matches AgentTeams template root; skipping bootstrap copy step.",
+        )
+        return 0
+
     ps_bootstrap = template_root / "scripts" / "bootstrap-agent-teams.ps1"
     sh_bootstrap = template_root / "scripts" / "bootstrap-agent-teams.sh"
 
@@ -302,7 +347,7 @@ def invoke_bootstrap(template_root: Path, target_root: Path) -> int:
             return fail(
                 "BOOTSTRAP_FAILED",
                 f"bootstrap failed for target: {target_root.as_posix()}",
-                "Retry: at init --here --agents-policy coexist",
+                f"Retry: {cli_command('init --here --agents-policy coexist', include_compat=True)}",
             )
         return 0
 
@@ -317,7 +362,7 @@ def invoke_bootstrap(template_root: Path, target_root: Path) -> int:
         return fail(
             "BOOTSTRAP_FAILED",
             f"bootstrap failed for target: {target_root.as_posix()}",
-            "Retry: at init --here --agents-policy coexist",
+            f"Retry: {cli_command('init --here --agents-policy coexist', include_compat=True)}",
         )
     return 0
 
@@ -333,7 +378,7 @@ def doctor(verbose: bool) -> int:
     target_root = resolve_target_root_here()
     if target_root is None:
         print("ERROR [AGENT_CONTEXT_MISSING] current directory is not inside a git repository.")
-        print("Next: at init")
+        print(f"Next: {cli_command('init', include_compat=True)}")
         return 1
 
     print(f"OK [AGENT_CONTEXT_OK] git repository detected: {target_root.as_posix()}")
@@ -370,10 +415,10 @@ def doctor(verbose: bool) -> int:
         is_verbose_enabled(verbose, f"no local rules backup file: {local_agents.as_posix()}")
 
     if has_error or has_warning:
-        print("Next: at init --here")
+        print(f"Next: {cli_command('init --here', include_compat=True)}")
         return 1
 
-    print("Next: at init --here")
+    print(f"Next: {cli_command('init --here', include_compat=True)}")
     return 0
 
 
@@ -392,7 +437,7 @@ def init_with_clone(
         return fail(
             "PATH_LAYOUT_INVALID",
             f"unable to derive repository name from URL: {repo_url}",
-            "Example: at init https://github.com/<org>/<repo>.git",
+            "Example: agentteams init https://github.com/<org>/<repo>.git",
         )
 
     target_root = workspace_root / repo_name
@@ -400,19 +445,20 @@ def init_with_clone(
         return fail(
             "PATH_LAYOUT_INVALID",
             f"target already exists: {target_root.as_posix()}",
-            "For existing clone: at init --here",
+            f"For existing clone: {cli_command('init --here', include_compat=True)}",
         )
 
     is_verbose_enabled(verbose, f"cloning {repo_url} -> {target_root.as_posix()}")
     code, _ = run_cmd(["git", "clone", repo_url, str(target_root)])
     if code != 0:
+        retry_cmd = f'init {repo_url} -w "{workspace_root.as_posix()}"'
         return fail(
             "GIT_CLONE_FAILED",
             f"git clone failed: {repo_url}",
-            f'Check URL and retry: at init {repo_url} -w "{workspace_root.as_posix()}"',
+            f"Check URL and retry: {cli_command(retry_cmd, include_compat=True)}",
         )
 
-    code = invoke_bootstrap(template_root, target_root)
+    code = invoke_bootstrap(template_root, target_root, verbose)
     if code != 0:
         return code
 
@@ -421,7 +467,7 @@ def init_with_clone(
         return code
 
     ensure_chat_log_template(target_root, verbose)
-    print(f"at init completed: {target_root.as_posix()}")
+    print(f"{PRIMARY_CLI} init completed: {target_root.as_posix()}")
     return 0
 
 
@@ -431,21 +477,29 @@ def init_here(template_root: Path, policy: str, verbose: bool) -> int:
         return fail(
             "PATH_LAYOUT_INVALID",
             "--here can only be used inside a git repository.",
-            "For new setup: at init <git-url>",
+            f"For new setup: {cli_command('init <git-url>', include_compat=True)}",
         )
 
     is_verbose_enabled(verbose, f"target root: {target_root.as_posix()}")
+    effective_policy = policy
+    if paths_equal(template_root, target_root):
+        if policy != "keep":
+            is_verbose_enabled(
+                verbose,
+                "target root is AgentTeams template root; forcing agents-policy=keep to avoid mutating template files.",
+            )
+        effective_policy = "keep"
 
-    code = invoke_bootstrap(template_root, target_root)
+    code = invoke_bootstrap(template_root, target_root, verbose)
     if code != 0:
         return code
 
-    code = apply_agents_policy(target_root, policy, verbose)
+    code = apply_agents_policy(target_root, effective_policy, verbose)
     if code != 0:
         return code
 
     ensure_chat_log_template(target_root, verbose)
-    print(f"at init completed: {target_root.as_posix()}")
+    print(f"{PRIMARY_CLI} init completed: {target_root.as_posix()}")
     return 0
 
 
@@ -472,7 +526,7 @@ def parse_init_args(args: list[str]) -> tuple[str, bool, str, str, bool, int]:
                 return "", False, "", "", False, fail(
                     "PATH_LAYOUT_INVALID",
                     f"{token} requires a path value.",
-                    "Usage: at init <git-url> -w <path>",
+                    "Usage: agentteams init <git-url> -w <path>",
                 )
             workspace = args[idx + 1]
             idx += 2
@@ -495,13 +549,13 @@ def parse_init_args(args: list[str]) -> tuple[str, bool, str, str, bool, int]:
             return "", False, "", "", False, fail(
                 "PATH_LAYOUT_INVALID",
                 f"unknown option: {token}",
-                "Usage: at init <git-url> | at init --here",
+                "Usage: agentteams init <git-url> | agentteams init --here",
             )
         if repo_url:
             return "", False, "", "", False, fail(
                 "PATH_LAYOUT_INVALID",
                 f"multiple repository urls provided: {repo_url}, {token}",
-                "Usage: at init <git-url>",
+                "Usage: agentteams init <git-url>",
             )
         repo_url = token
         idx += 1
@@ -517,14 +571,14 @@ def parse_init_args(args: list[str]) -> tuple[str, bool, str, str, bool, int]:
         return "", False, "", "", False, fail(
             "PATH_LAYOUT_INVALID",
             "--here and <git-url> cannot be used together.",
-            "New setup: at init <git-url> / Existing clone: at init --here",
+            "New setup: agentteams init <git-url> / Existing clone: agentteams init --here",
         )
 
     if use_here and workspace != str(Path.cwd()):
         return "", False, "", "", False, fail(
             "PATH_LAYOUT_INVALID",
             "--workspace cannot be used with --here.",
-            "For existing clone: at init --here",
+            f"For existing clone: {cli_command('init --here', include_compat=True)}",
         )
 
     return repo_url, use_here, workspace, policy, verbose, 0
@@ -544,7 +598,7 @@ def parse_sync_args(args: list[str]) -> tuple[str, str, bool, bool, int]:
                 return "", "", False, False, fail(
                     "PATH_LAYOUT_INVALID",
                     "--source requires a value.",
-                    "Usage: at sync --source <git-url> --ref <branch>",
+                    "Usage: agentteams sync --source <git-url> --ref <branch>",
                 )
             source = args[idx + 1]
             idx += 2
@@ -554,7 +608,7 @@ def parse_sync_args(args: list[str]) -> tuple[str, str, bool, bool, int]:
                 return "", "", False, False, fail(
                     "PATH_LAYOUT_INVALID",
                     "--ref requires a value.",
-                    "Usage: at sync --ref <tag|branch>",
+                    "Usage: agentteams sync --ref <tag|branch>",
                 )
             ref = args[idx + 1]
             idx += 2
@@ -570,20 +624,20 @@ def parse_sync_args(args: list[str]) -> tuple[str, str, bool, bool, int]:
         return "", "", False, False, fail(
             "PATH_LAYOUT_INVALID",
             f"unknown option for sync: {token}",
-            "Usage: at sync [--source <git-url>] [--ref <tag|branch>] [--offline-ok] [--verbose]",
+            "Usage: agentteams sync [--source <git-url>] [--ref <tag|branch>] [--offline-ok] [--verbose]",
         )
 
     if not source.strip():
         return "", "", False, False, fail(
             "PATH_LAYOUT_INVALID",
             "source must not be empty.",
-            "Usage: at sync --source <git-url>",
+            "Usage: agentteams sync --source <git-url>",
         )
     if not ref.strip():
         return "", "", False, False, fail(
             "PATH_LAYOUT_INVALID",
             "ref must not be empty.",
-            "Usage: at sync --ref <tag|branch>",
+            "Usage: agentteams sync --ref <tag|branch>",
         )
 
     return source.strip(), ref.strip(), offline_ok, verbose, 0
@@ -604,7 +658,7 @@ def parse_report_incident_args(args: list[str]) -> tuple[str, str, str, str, boo
                 return "", "", "", "", False, fail(
                     "PATH_LAYOUT_INVALID",
                     "--task-file requires a value.",
-                    "Usage: at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
+                    "Usage: agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
                 )
             task_file = args[idx + 1]
             idx += 2
@@ -614,7 +668,7 @@ def parse_report_incident_args(args: list[str]) -> tuple[str, str, str, str, boo
                 return "", "", "", "", False, fail(
                     "PATH_LAYOUT_INVALID",
                     "--code requires a value.",
-                    "Usage: at report-incident --code <warning_code>",
+                    "Usage: agentteams report-incident --code <warning_code>",
                 )
             warning_code = args[idx + 1]
             idx += 2
@@ -624,7 +678,7 @@ def parse_report_incident_args(args: list[str]) -> tuple[str, str, str, str, boo
                 return "", "", "", "", False, fail(
                     "PATH_LAYOUT_INVALID",
                     "--summary requires a value.",
-                    "Usage: at report-incident --summary <text>",
+                    "Usage: agentteams report-incident --summary <text>",
                 )
             summary = args[idx + 1]
             idx += 2
@@ -634,7 +688,7 @@ def parse_report_incident_args(args: list[str]) -> tuple[str, str, str, str, boo
                 return "", "", "", "", False, fail(
                     "PATH_LAYOUT_INVALID",
                     "--project requires a value.",
-                    "Usage: at report-incident --project <name>",
+                    "Usage: agentteams report-incident --project <name>",
                 )
             project = args[idx + 1]
             idx += 2
@@ -646,32 +700,32 @@ def parse_report_incident_args(args: list[str]) -> tuple[str, str, str, str, boo
         return "", "", "", "", False, fail(
             "PATH_LAYOUT_INVALID",
             f"unknown option for report-incident: {token}",
-            "Usage: at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name> [--verbose]",
+            "Usage: agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name> [--verbose]",
         )
 
     if not task_file:
         return "", "", "", "", False, fail(
             "PATH_LAYOUT_INVALID",
             "--task-file is required.",
-            "Usage: at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
+            "Usage: agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
         )
     if not warning_code:
         return "", "", "", "", False, fail(
             "PATH_LAYOUT_INVALID",
             "--code is required.",
-            "Usage: at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
+            "Usage: agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
         )
     if not summary:
         return "", "", "", "", False, fail(
             "PATH_LAYOUT_INVALID",
             "--summary is required.",
-            "Usage: at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
+            "Usage: agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
         )
     if not project:
         return "", "", "", "", False, fail(
             "PATH_LAYOUT_INVALID",
             "--project is required.",
-            "Usage: at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
+            "Usage: agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
         )
 
     return task_file, warning_code, summary, project, verbose, 0
@@ -1001,8 +1055,8 @@ def sync_incident_registry(
     if target_root is None:
         return fail(
             "AGENT_CONTEXT_MISSING",
-            "at sync must run inside a git repository.",
-            "Next: at init",
+            "agentteams sync must run inside a git repository.",
+            f"Next: {cli_command('init', include_compat=True)}",
         )
 
     source_input = source.strip()
@@ -1049,7 +1103,7 @@ def sync_incident_registry(
                     warn(
                         "INCIDENT_SYNC_FAILED",
                         f"sync skipped (offline-ok): failed to clone source '{source_resolved}' ref '{ref}'.",
-                        "at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
+                        "agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
                     )
                     if verbose and clone_output:
                         print(clone_output)
@@ -1057,7 +1111,7 @@ def sync_incident_registry(
                 return fail(
                     "INCIDENT_SYNC_FAILED",
                     f"failed to clone source '{source_resolved}' ref '{ref}'.",
-                    "Retry: at sync --source <git-url> --ref <branch>",
+                    "Retry: agentteams sync --source <git-url> --ref <branch>",
                 )
             source_repo_root = clone_root
             commit_code, commit_output = run_cmd(
@@ -1075,7 +1129,7 @@ def sync_incident_registry(
             return fail(
                 "INCIDENT_SYNC_FAILED",
                 f"source registry index missing: {source_index.as_posix()}",
-                "Check source repository layout and retry: at sync --source <git-url>",
+                "Check source repository layout and retry: agentteams sync --source <git-url>",
             )
 
         registry_validator = template_root / "scripts" / "validate-incident-registry.py"
@@ -1088,7 +1142,7 @@ def sync_incident_registry(
                 return fail(
                     "INCIDENT_SYNC_FAILED",
                     "source incident registry validation failed.",
-                    "Fix source registry, then retry: at sync --source <git-url>",
+                    "Fix source registry, then retry: agentteams sync --source <git-url>",
                 )
         else:
             is_verbose_enabled(
@@ -1101,7 +1155,7 @@ def sync_incident_registry(
             return fail(
                 "INCIDENT_SYNC_FAILED",
                 "source incident index has no incidents.",
-                "Update source registry and retry: at sync --source <git-url>",
+                "Update source registry and retry: agentteams sync --source <git-url>",
             )
 
         copied_files = 0
@@ -1113,7 +1167,7 @@ def sync_incident_registry(
                 return fail(
                     "INCIDENT_SYNC_FAILED",
                     "incident index entry is missing id.",
-                    "Fix source incident index and retry: at sync --source <git-url>",
+                    "Fix source incident index and retry: agentteams sync --source <git-url>",
                 )
 
             source_file = (source_repo_root / incident_file_rel).resolve() if incident_file_rel else Path("")
@@ -1125,7 +1179,7 @@ def sync_incident_registry(
                     return fail(
                         "INCIDENT_SYNC_FAILED",
                         f"incident file missing for id={incident_id}: {incident_file_rel}",
-                        "Fix source registry and retry: at sync --source <git-url>",
+                        "Fix source registry and retry: agentteams sync --source <git-url>",
                     )
 
             destination_file = cache_incidents_dir / f"{incident_id}.yaml"
@@ -1153,7 +1207,10 @@ def sync_incident_registry(
             f"incident_files_changed={copied_files} incident_files_removed={removed_files} "
             f"meta_changed={'yes' if meta_changed else 'no'}"
         )
-        print("Next: at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>")
+        print(
+            "Next: agentteams report-incident --task-file <path> --code <warning_code> "
+            "--summary <text> --project <name>"
+        )
         return 0
     finally:
         shutil.rmtree(tmp_root, ignore_errors=True)
@@ -1170,8 +1227,8 @@ def report_incident(
     if target_root is None:
         return fail(
             "AGENT_CONTEXT_MISSING",
-            "at report-incident must run inside a git repository.",
-            "Next: at init",
+            "agentteams report-incident must run inside a git repository.",
+            f"Next: {cli_command('init', include_compat=True)}",
         )
 
     normalized_code = re.sub(r"[^A-Z0-9_]", "_", warning_code_raw.strip().upper()).strip("_")
@@ -1209,7 +1266,7 @@ def report_incident(
         return fail(
             "SELF_UPDATE_TASK_PATH_INVALID",
             f"task file not found: {task_path.as_posix()}",
-            "Retry: at report-incident --task-file ./.codex/states/TASK-xxxxx-your-task.yaml --code <warning_code> --summary <text> --project <name>",
+            "Retry: agentteams report-incident --task-file ./.codex/states/TASK-xxxxx-your-task.yaml --code <warning_code> --summary <text> --project <name>",
         )
     if not task_path.is_file():
         return fail(
@@ -1369,7 +1426,7 @@ def report_incident(
         return fail(
             "INCIDENT_REPORT_FAILED",
             "unable to determine incident id.",
-            "Retry: at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
+            "Retry: agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>",
         )
 
     candidate_dir = target_root / INCIDENT_CANDIDATE_DIR
@@ -1446,7 +1503,7 @@ def report_incident(
         f"task={task_id} code={normalized_code} project={project} "
         f"task_updated={'yes' if task_changed else 'no'} candidate={candidate_file.as_posix()}"
     )
-    print("Next: at doctor")
+    print(f"Next: {cli_command('doctor', include_compat=True)}")
     return 0
 
 
@@ -1472,7 +1529,7 @@ def main(argv: list[str]) -> int:
         return fail(
             "PATH_LAYOUT_INVALID",
             f"unknown subcommand: {command}",
-            "Usage: at init [<git-url>] | at init --here | at doctor | at sync | at report-incident",
+            "Usage: agentteams init [<git-url>] | agentteams init --here | agentteams doctor | agentteams sync | agentteams report-incident",
         )
 
     if command == "doctor":
@@ -1484,7 +1541,7 @@ def main(argv: list[str]) -> int:
             return fail(
                 "PATH_LAYOUT_INVALID",
                 f"unknown option for doctor: {token}",
-                "Usage: at doctor [--verbose]",
+                "Usage: agentteams doctor [--verbose]",
             )
         code = ensure_git_available()
         if code != 0:

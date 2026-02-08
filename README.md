@@ -41,6 +41,24 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 - Linux/macOS で `at` を直接使う場合は最初に実行（`~/.local/bin/at` を作成）
 
 ```powershell
+agentteams init
+agentteams init <git-url>
+agentteams init --here
+agentteams init <git-url> -w <workspace-path>
+agentteams doctor
+agentteams sync
+agentteams report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
+```
+```bash
+./agentteams init
+./agentteams init <git-url>
+./agentteams init --here
+./agentteams init <git-url> -w <workspace-path>
+./agentteams doctor
+./agentteams sync
+./agentteams report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
+```
+```powershell
 at init
 at init <git-url>
 at init --here
@@ -49,26 +67,18 @@ at doctor
 at sync
 at report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
 ```
-```bash
-./at init
-./at init <git-url>
-./at init --here
-./at init <git-url> -w <workspace-path>
-./at doctor
-./at sync
-./at report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
-```
+- Windows では `at` が `C:\Windows\System32\at.exe` に解決される場合があるため、`agentteams` を優先する
 - `--agents-policy coexist|replace|keep`（既定: `coexist`）
-- `at init` は clone 先ディレクトリを正規化し、`AGENTS.md` 競合を自動処理する
-- `at init` を引数なしで実行した場合:
+- `agentteams init` は clone 先ディレクトリを正規化し、`AGENTS.md` 競合を自動処理する
+- `agentteams init` を引数なしで実行した場合:
 1. Git 管理下なら `--here` 相当で現在 repo に導入する
 2. Git 管理外なら Repository URL を対話で確認する
-- `at doctor` は現在 repo の導入状態を診断し、次に打つ 1 コマンドを提示する
-- `at sync` は AgentTeams 本体の incident-registry を `.codex/cache` へ同期する（タスク開始前 / CI で実行）
-- `at report-incident` は task の warning/notes と incident-registry 候補ファイルを更新する
-- 標準フロー: `at sync` -> `at report-incident` -> `validate-repo`
-- `bootstrap-agent-teams` は `at init` の内部実装として呼び出される
-- `at init` 実行には `python`（または `py -3` / `python3`）が必要
+- `agentteams doctor` は現在 repo の導入状態を診断し、次に打つ 1 コマンドを提示する
+- `agentteams sync` は AgentTeams 本体の incident-registry を `.codex/cache` へ同期する（タスク開始前 / CI で実行）
+- `agentteams report-incident` は task の warning/notes と incident-registry 候補ファイルを更新する
+- 標準フロー: `agentteams sync` -> `agentteams report-incident` -> `validate-repo`
+- `bootstrap-agent-teams` は `agentteams init` の内部実装として呼び出される
+- `agentteams init` 実行には `python`（または `py -3` / `python3`）が必要
 
 ### 内部互換コマンド（通常は不要）
 ```powershell
@@ -88,7 +98,7 @@ bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
 - `chat`: ロール切替時・Gate判断時は口上 + 宣言を行う
 - `chat`: 作業開始時・Gate判断時には必要性判断を行い、必要時は進言も併記する
 - 口上では `T-310` のような `task_id` 単独表現を禁止し、作業タイトルを必ず伝える
-- 標準ログ: `logs/e2e-ai-log.md`（`at init` で初回テンプレートを自動生成）
+- 標準ログ: `logs/e2e-ai-log.md`（`agentteams init` で初回テンプレートを自動生成）
 - `task`: `handoffs.memo` の先頭行に宣言を記録する
 - 例: `DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic`
 
@@ -172,7 +182,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1
 bash ./scripts/validate-repo.sh
 ```
 
-### `at init` E2E
+### `agentteams init` E2E
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-at-init.ps1
 ```

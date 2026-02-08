@@ -31,7 +31,7 @@
 - `chat`: Task開始時は `固定開始宣言 -> 口上 -> DECLARATION` の3行をこの順で出す（固定開始宣言はTask開始時のみ）
 - `chat`: ロール切替時・Gate判断時（停止/再開/完了確定）は口上 + 宣言を出す
 - 口上は `task_id` 単独表現を禁止し、作業タイトルを必須記載する
-- `chat` の標準ログは `logs/e2e-ai-log.md` とする（`at init` でテンプレート生成）
+- `chat` の標準ログは `logs/e2e-ai-log.md` とする（`agentteams init` でテンプレート生成。互換: `at init`）
 - `task`: `handoffs[].memo` の先頭行を宣言にする
 - `notes`: 主要判断時は任意で宣言を追記する
 - 必要性判断: 作業開始時と Gate判断時に「追加レビュー・追加Gate・MCP活用・先行調査」の要否を確認する
@@ -104,8 +104,8 @@ python3 ./scripts/validate-chat-declaration.py
 ## Cross-Repo Incident Registry
 - 正本: AgentTeams 本体リポジトリの `knowledge/incidents/*`
 - プロジェクト側キャッシュ: `.codex/cache/incident-registry.yaml`, `.codex/cache/incident-registry.meta.yaml`
-- タスク開始前/CI で `at sync` を実行し、incident-registry を同期する（作業中の自動 `git pull` は行わない）
-- 事象検知時は `at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>` を実行し、task 証跡と候補台帳を更新する
+- タスク開始前/CI で `agentteams sync` を実行し、incident-registry を同期する（互換: `at sync`、作業中の自動 `git pull` は行わない）
+- 事象検知時は `agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>` を実行し、task 証跡と候補台帳を更新する（互換: `at report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>`）
 - 検証コマンド:
 ```powershell
 python .\scripts\validate-incident-registry.py

@@ -5,6 +5,9 @@
 該当ルールの判定例は `docs/guides/rule-examples.md` を参照する。
 
 ## Common Rules
+- Windows では `at` が `at.exe` と衝突し得るため、CLI は `agentteams` を優先する（互換: `at`）。
+- 導入/診断の基本コマンド: `agentteams init`, `agentteams init --here`, `agentteams doctor`
+- incident-registry 更新フロー: `agentteams sync` -> `agentteams report-incident --task-file <path> --code <warning_code> --summary <text> --project <name>`
 - 依頼は coordinator が受理し、`Goal/Constraints/Acceptance` に分解する。
 - `coordinatorとして処理して` は推奨文であり必須ではない。文言がなくても coordinator が受理する。
 - 作業ルートは「対象プロダクト repo のルート」を必須とする（`AgentTeams/<project>` 構成では `cd <project>` してから作業開始）。
