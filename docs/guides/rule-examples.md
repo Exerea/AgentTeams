@@ -101,12 +101,15 @@ updated_at: 2026-02-07T03:15:00Z  # 変更後も据え置き
 
 ## R-05
 ### Rule
-宣言は二層で実施する。`chat` は口上 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>` を作業開始時・ロール切替時・Gate判断時に明示し、`handoffs[].memo` 先頭行は `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を記録する。必要性判断で追加対応が有効なら `【進言】...` を続けて出す。
+宣言は二層で実施する。Task開始時の `chat` は `固定開始宣言 -> 口上 -> DECLARATION` の3行をこの順で明示する（固定開始宣言はTask開始時のみ）。ロール切替時・Gate判断時は口上 + 宣言を明示し、`handoffs[].memo` 先頭行は `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を記録する。必要性判断で追加対応が有効なら `【進言】...` を続けて出す。
 ### Intent
 「誰が動いているか」を常に可視化する。
 ### Good Example
 ```text
+殿のご意思と各AGENTS.mdの規則に忠実に従う家臣たちが集まりました。
+──────家臣たちが動きますッ！
 【稼働口上】殿、ただいま 足軽 の backend/security-expert が「入力検証レビュー」を務めます。入力検証の確認を行います。
+DECLARATION team=backend role=security-expert task=T-110 action=security_review
 【進言】API境界テストを追加し、UI実動作は DevTools MCP で再現確認します（理由: 認可漏れ再発リスクの低減）
 memo: DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic | 重大指摘なし。
 ```

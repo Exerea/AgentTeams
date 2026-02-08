@@ -15,6 +15,8 @@
 - `memo`
 
 ## Declaration Format
+- 固定開始宣言（人間向け / Task開始時のみ）  
+`殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
 - 口上（人間向け / chat 必須）  
 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 - 機械可読（既存 / task 必須）  
@@ -26,13 +28,15 @@
 - `coordinator=家老`
 - `coordinator以外の実行ロール=足軽`
 - 適用面:
-- `chat`: 作業開始時・ロール切替時・Gate判断時（停止/再開/完了確定）に口上 + 宣言を出す
+- `chat`: Task開始時は `固定開始宣言 -> 口上 -> DECLARATION` の3行をこの順で出す（固定開始宣言はTask開始時のみ）
+- `chat`: ロール切替時・Gate判断時（停止/再開/完了確定）は口上 + 宣言を出す
 - 口上は `task_id` 単独表現を禁止し、作業タイトルを必須記載する
 - `chat` の標準ログは `logs/e2e-ai-log.md` とする（`at init` でテンプレート生成）
 - `task`: `handoffs[].memo` の先頭行を宣言にする
 - `notes`: 主要判断時は任意で宣言を追記する
 - 必要性判断: 作業開始時と Gate判断時に「追加レビュー・追加Gate・MCP活用・先行調査」の要否を確認する
 - 例:
+- `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
 - `【稼働口上】殿、ただいま 家老 の coordinator/coordinator が「Backend Security Gate 判定」を務めます。判定を開始します。`
 - `【進言】UI実動作確認のため DevTools MCP を併用します（理由: 画面回帰検知の精度向上）`
 - `DECLARATION team=coordinator role=coordinator task=T-110 action=assign_backend_security_review`
@@ -87,7 +91,7 @@ T-110をやります。
 - 標準ログパス: `logs/e2e-ai-log.md`
 - 必須:
 1. `## Entries` セクションを保持する
-2. 先頭2エントリで `【稼働口上】` -> `DECLARATION ...` を連続記録する
+2. Task開始時の先頭3エントリで `固定開始宣言` -> `【稼働口上】` -> `DECLARATION ...` を連続記録する
 3. `実行` / `調べました` / `Ran` 系エントリ前に、直近宣言を残す
 - 検証コマンド:
 ```powershell

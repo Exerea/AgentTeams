@@ -25,7 +25,7 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 7. `research_track_enabled=true` の採用判断は `poc_result + ADR承認` を必須
 8. `detect-role-gaps` は候補検知、`validate-role-gap-review` は放置/証跡不備をブロック
 9. `validate-secrets` 失敗時は `done` 不可（Secret Scan Gate）
-10. 稼働宣言を二層化し、`chat` は日本語口上、`handoff memo` は `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を必須化
+10. 稼働宣言を二層化し、Task開始時の `chat` は `固定開始宣言 -> 日本語口上 -> DECLARATION` を必須化、`handoff memo` は `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を必須化
 11. 作業開始時と Gate判断時に必要性判断を行い、追加レビュー・追加Gate・MCP活用が有効なら `【進言】...` を必須化
 
 ## クイックスタート
@@ -72,11 +72,13 @@ bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
 ```
 
 ## 稼働宣言プロトコル
+- 固定開始宣言（Task開始時のみ）: `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
 - 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 - 進言テンプレ: `【進言】<提案内容>（理由: <risk_or_benefit>）`
 - 機械可読フォーマット: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
-- `chat`: 作業開始時・ロール切替時・Gate判断時に口上 + 宣言を行う
+- `chat`: Task開始時は `固定開始宣言 -> 口上 -> DECLARATION` の3行をこの順で行う（固定開始宣言はTask開始時のみ）
+- `chat`: ロール切替時・Gate判断時は口上 + 宣言を行う
 - `chat`: 作業開始時・Gate判断時には必要性判断を行い、必要時は進言も併記する
 - 口上では `T-310` のような `task_id` 単独表現を禁止し、作業タイトルを必ず伝える
 - 標準ログ: `logs/e2e-ai-log.md`（`at init` で初回テンプレートを自動生成）

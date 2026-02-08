@@ -9,7 +9,7 @@ AgentTeams は複数エージェントで一貫した意思決定と実装品質
 2. `task_file_path` で指定された task ファイル以外を更新しない。
 3. `_index.yaml` と `_role-gap-index.yaml` は coordinator のみ更新する。
 4. task 更新時は `status` と `updated_at` を必ず更新する。
-5. 稼働宣言は二層で実施する。`chat` では日本語口上 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>` を作業開始時・ロール切替時・Gate判断時に明示し、`task_id` だけの口上は禁止する。`handoffs[].memo` 先頭行は機械可読フォーマット `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を必須記録する（呼称マッピング: ユーザー=殿様、coordinator=家老、coordinator以外=足軽）。加えて、宣言時には必要性判断として「依頼内容をそのまま実行するか」「追加レビュー・追加Gate・MCP活用が必要か」を必ず判断し、必要なら殿様へ進言してから進行する。
+5. 稼働宣言は二層で実施する。Task開始時の `chat` 先頭3行は固定し、1行目を固定開始宣言 `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`、2行目を日本語口上 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`、3行目を機械可読フォーマット `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` とする（適用はTask開始時のみ）。ロール切替時・Gate判断時は口上 + 宣言を明示し、`task_id` だけの口上は禁止する。`handoffs[].memo` 先頭行は同じ機械可読フォーマットを必須記録する（呼称マッピング: ユーザー=殿様、coordinator=家老、coordinator以外=足軽）。加えて、宣言時には必要性判断として「依頼内容をそのまま実行するか」「追加レビュー・追加Gate・MCP活用が必要か」を必ず判断し、必要なら殿様へ進言してから進行する。
 6. `local_flags.major_decision_required=true` は ADR 条件充足前に実装 task を `in_progress` にしない。
 7. API仕様の正本は `docs/api/openapi.yaml` とし、API変更は `documentation-guild/api-spec-owner` を経由する。
 8. `local_flags.documentation_sync_required=true` は `documentation-guild/tech-writer` 完了前に `done` にしない。

@@ -12,7 +12,9 @@
 - 実務ロールは `task_file_path` で渡された `TASK-*.yaml` のみを更新する。
 - `_index.yaml` と `_role-gap-index.yaml` の更新は coordinator 専任。
 - handoff は `from/to/at/memo` を必須記録する。
-- `chat` では作業開始時・ロール切替時・Gate判断時に口上を宣言する。  
+- `chat` の Task開始時は固定開始宣言を1行目に出す（Task開始時のみ）。  
+`殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
+- `chat` では Task開始時に `固定開始宣言 -> 口上 -> DECLARATION` をこの順で宣言する。ロール切替時・Gate判断時は口上 + 宣言を出す。  
 `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 - 作業開始時と Gate判断時に必要性判断を行い、追加レビュー・追加Gate・MCP活用が有効なら進言を併記する。  
 `【進言】<提案内容>（理由: <risk_or_benefit>）`

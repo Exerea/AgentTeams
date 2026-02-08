@@ -3,7 +3,7 @@
 ## Summary
 このリポジトリは Template Repo として各案件に同梱し、coordinator が task 分解とロール割当を行う。  
 状態正本は `.codex/states/` で、`_index.yaml` は全体俯瞰、`TASK-*.yaml` は実務詳細を管理する。  
-v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口上、`handoff memo` は機械可読宣言でアクティブロール可視化を必須化した。加えて、作業開始時と Gate判断時に必要性判断を行い、必要時は `【進言】...` を出す。
+v2.8 では稼働宣言プロトコルを二層化し、`chat` は Task開始時に固定開始宣言 + 日本語口上 + 機械可読宣言の3行契約を必須化した。`handoff memo` は機械可読宣言でアクティブロール可視化を必須化する。加えて、作業開始時と Gate判断時に必要性判断を行い、必要時は `【進言】...` を出す。
 `frontend/code-reviewer` は廃止済みとし、新規 task では `qa-review-guild/code-critic` を正規レビュー担当とする。
 
 ## 運用シナリオ正本
@@ -60,11 +60,13 @@ v2.8 では稼働宣言プロトコルを二層化し、`chat` は日本語口�
 - warning は `warnings[]` へ記録
 
 ## 稼働宣言プロトコル
+- 固定開始宣言（Task開始時のみ）: `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
 - 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
 - 進言テンプレ: `【進言】<提案内容>（理由: <risk_or_benefit>）`
 - 機械可読宣言: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
 - 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
-- `chat`: 作業開始時・ロール切替時・Gate判断時に口上 + 宣言を出す
+- `chat`: Task開始時は `固定開始宣言 -> 口上 -> DECLARATION` の3行をこの順で出す（固定開始宣言はTask開始時のみ）
+- `chat`: ロール切替時・Gate判断時は口上 + 宣言を出す
 - `chat`: 作業開始時・Gate判断時には必要性判断を行い、必要時は進言を併記する
 - 口上では `task_id` 単独表現を禁止し、作業タイトルを必須記載する
 - `task`: `handoffs.memo` の先頭行に宣言を記録する

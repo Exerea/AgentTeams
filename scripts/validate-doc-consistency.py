@@ -103,6 +103,31 @@ def main() -> int:
     for key, needles in declaration_refs.items():
         require_all(content[key], needles, files[key], errors)
 
+    global_kickoff_phrase = "殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！"
+    global_kickoff_refs = {
+        "agents": [global_kickoff_phrase, "Task開始時"],
+        "coordinator": [global_kickoff_phrase, "Task開始時"],
+        "spec": [global_kickoff_phrase, "Task開始時"],
+        "readme": [global_kickoff_phrase, "Task開始時"],
+        "protocol": [global_kickoff_phrase, "Task開始時"],
+        "scenarios": [global_kickoff_phrase, "Task開始時"],
+        "rule_examples": [global_kickoff_phrase, "Task開始時"],
+    }
+    for key, needles in global_kickoff_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
+    task_start_contract_refs = {
+        "agents": ["固定開始宣言", "【稼働口上】", "DECLARATION"],
+        "coordinator": ["固定開始宣言", "【稼働口上】", "DECLARATION"],
+        "spec": ["固定開始宣言", "【稼働口上】", "DECLARATION"],
+        "readme": ["固定開始宣言", "【稼働口上】", "DECLARATION"],
+        "protocol": ["固定開始宣言", "【稼働口上】", "DECLARATION"],
+        "scenarios": ["固定開始宣言", "【稼働口上】", "DECLARATION"],
+        "rule_examples": ["固定開始宣言", "【稼働口上】", "DECLARATION"],
+    }
+    for key, needles in task_start_contract_refs.items():
+        require_all(content[key], needles, files[key], errors)
+
     # Roleplay declaration vocabulary consistency
     roleplay_refs = {
         "agents": ["殿様", "家老", "足軽"],

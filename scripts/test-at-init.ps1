@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 [CmdletBinding()]
 param(
   [switch]$KeepTempOnFailure
@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 $templateRoot = [System.IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot -ChildPath '..'))
 $atCmd = Join-Path -Path $templateRoot -ChildPath 'at.cmd'
 $chatValidator = Join-Path -Path $templateRoot -ChildPath 'scripts/validate-chat-declaration.py'
+$globalKickoff = '殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！'
 
 if (-not (Test-Path -LiteralPath $atCmd -PathType Leaf)) {
   throw "missing command launcher: $atCmd"
@@ -184,6 +185,9 @@ try {
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo '.codex/AGENTS.md') -PathType Leaf) -Message '.codex/AGENTS.md missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo '.github/workflows/agentteams-validate.yml') -PathType Leaf) -Message 'workflow missing after clone init'
   Assert-Condition -Condition (Test-Path -LiteralPath (Join-Path $targetRepo 'logs/e2e-ai-log.md') -PathType Leaf) -Message 'logs/e2e-ai-log.md missing after clone init'
+  $chatLogText = [System.IO.File]::ReadAllText((Join-Path $targetRepo 'logs/e2e-ai-log.md'), [System.Text.Encoding]::UTF8)
+  Assert-Condition -Condition ($chatLogText.Contains($globalKickoff)) -Message 'chat log template missing global kickoff declaration'
+  Assert-Condition -Condition ($chatLogText.Contains('固定開始宣言 -> 稼働口上 -> DECLARATION')) -Message 'chat log template missing 3-line contract marker'
 
   Write-Host '[4/8] doctor in installed repo'
   Push-Location $targetRepo
@@ -301,45 +305,68 @@ try {
 
     $koujoTag = ([char[]](0x3010, 0x7A3C, 0x50CD, 0x53E3, 0x4E0A, 0x3011) -join '')
 
-    $badMissing = Join-Path $targetRepo 'logs/bad-missing-declaration.md'
-    $badMissingContent = @(
+    $badMissingKickoff = Join-Path $targetRepo 'logs/bad-missing-kickoff.md'
+    $badMissingKickoffContent = @(
       '# E2E AI Log (v2.8)',
       '',
-      '- declaration_protocol: lord/chief/worker + DECLARATION',
+      '- declaration_protocol: Task開始時は「固定開始宣言 -> 稼働口上 -> DECLARATION」の3行を必須化',
       '',
       '## Entries',
       "- 2026-01-01T00:00:00Z $koujoTag protocol bootstrap message",
-      '- 2026-01-01T00:00:01Z Ran git status -sb'
+      '- 2026-01-01T00:00:01Z DECLARATION team=coordinator role=coordinator task=N/A action=bootstrap_verification',
+      '- 2026-01-01T00:00:02Z Ran git status -sb'
     ) -join "`n"
     [System.IO.File]::WriteAllText(
-      $badMissing,
-      "$badMissingContent`n",
+      $badMissingKickoff,
+      "$badMissingKickoffContent`n",
       [System.Text.UTF8Encoding]::new($false)
     )
 
-    $validateMissing = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', $badMissing)
-    Assert-Condition -Condition ($validateMissing.ExitCode -ne 0) -Message 'chat validator unexpectedly passed missing declaration case'
-    Assert-Condition -Condition ($validateMissing.Output.Contains('CHAT_DECLARATION_MISSING')) -Message 'missing declaration case did not report CHAT_DECLARATION_MISSING'
+    $validateMissingKickoff = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', $badMissingKickoff)
+    Assert-Condition -Condition ($validateMissingKickoff.ExitCode -ne 0) -Message 'chat validator unexpectedly passed missing kickoff case'
+    Assert-Condition -Condition ($validateMissingKickoff.Output.Contains('CHAT_GLOBAL_KICKOFF_MISSING')) -Message 'missing kickoff case did not report CHAT_GLOBAL_KICKOFF_MISSING'
 
-    $badFormat = Join-Path $targetRepo 'logs/bad-format-declaration.md'
-    $badFormatContent = @(
+    $badFormatKickoff = Join-Path $targetRepo 'logs/bad-format-kickoff.md'
+    $badFormatKickoffContent = @(
       '# E2E AI Log (v2.8)',
       '',
-      '- declaration_protocol: lord/chief/worker + DECLARATION',
+      '- declaration_protocol: Task開始時は「固定開始宣言 -> 稼働口上 -> DECLARATION」の3行を必須化',
       '',
       '## Entries',
-      "- 2026-01-01T00:00:00Z $koujoTag protocol bootstrap message",
-      '- 2026-01-01T00:00:01Z DECLARATION team=coordinator role=coordinator task=N/A'
+      '- 2026-01-01T00:00:00Z 殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。--家臣たちが動きます！',
+      "- 2026-01-01T00:00:01Z $koujoTag protocol bootstrap message",
+      '- 2026-01-01T00:00:02Z DECLARATION team=coordinator role=coordinator task=N/A action=bootstrap_verification'
     ) -join "`n"
     [System.IO.File]::WriteAllText(
-      $badFormat,
-      "$badFormatContent`n",
+      $badFormatKickoff,
+      "$badFormatKickoffContent`n",
       [System.Text.UTF8Encoding]::new($false)
     )
 
-    $validateFormat = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', $badFormat)
-    Assert-Condition -Condition ($validateFormat.ExitCode -ne 0) -Message 'chat validator unexpectedly passed invalid declaration format case'
-    Assert-Condition -Condition ($validateFormat.Output.Contains('CHAT_DECLARATION_FORMAT_INVALID')) -Message 'invalid declaration format case did not report CHAT_DECLARATION_FORMAT_INVALID'
+    $validateFormatKickoff = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', $badFormatKickoff)
+    Assert-Condition -Condition ($validateFormatKickoff.ExitCode -ne 0) -Message 'chat validator unexpectedly passed invalid kickoff format case'
+    Assert-Condition -Condition ($validateFormatKickoff.Output.Contains('CHAT_GLOBAL_KICKOFF_FORMAT_INVALID')) -Message 'invalid kickoff format case did not report CHAT_GLOBAL_KICKOFF_FORMAT_INVALID'
+
+    $badOrder = Join-Path $targetRepo 'logs/bad-order.md'
+    $badOrderContent = @(
+      '# E2E AI Log (v2.8)',
+      '',
+      '- declaration_protocol: Task開始時は「固定開始宣言 -> 稼働口上 -> DECLARATION」の3行を必須化',
+      '',
+      '## Entries',
+      "- 2026-01-01T00:00:00Z $globalKickoff",
+      '- 2026-01-01T00:00:01Z DECLARATION team=coordinator role=coordinator task=N/A action=bootstrap_verification',
+      "- 2026-01-01T00:00:02Z $koujoTag protocol bootstrap message"
+    ) -join "`n"
+    [System.IO.File]::WriteAllText(
+      $badOrder,
+      "$badOrderContent`n",
+      [System.Text.UTF8Encoding]::new($false)
+    )
+
+    $validateOrder = Invoke-PythonCapture -ScriptPath $chatValidator -Arguments @('--log', $badOrder)
+    Assert-Condition -Condition ($validateOrder.ExitCode -ne 0) -Message 'chat validator unexpectedly passed order violation case'
+    Assert-Condition -Condition ($validateOrder.Output.Contains('CHAT_KOUJO_MISSING')) -Message 'order violation case did not report CHAT_KOUJO_MISSING'
   }
   finally {
     Pop-Location
