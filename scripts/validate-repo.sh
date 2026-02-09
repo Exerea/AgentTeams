@@ -35,6 +35,7 @@ else
 fi
 "$py_bin" ./scripts/validate-incident-sync-freshness.py
 "$py_bin" ./scripts/detect-recurring-incident.py
+"$py_bin" ./scripts/audit-agentteams-structure.py --states-dir ./.codex/states --log ./logs/e2e-ai-log.md --min-teams 3 --min-roles 5
 bash ./scripts/validate-secrets.sh
 
 echo "repository validation passed"

@@ -61,8 +61,13 @@ flowchart LR
 - `Secret Scan Gate`: `validate-secrets` 最新成功必須
 - `Role Gap Review Gate`: `validate-role-gap-review` 成功必須
 
+## TAKT Execution Layer
+- 実行オーケストレーションは `.takt/pieces/agentteams-governance.yaml` で管理する。
+- specialist レビューは parallel movement（Security / UX / Protocol / Docs / QA / Role Gap）で同時実行する。
+- 判定は `all(\"approved\")` / `any(\"needs_fix\")` / `any(\"blocked\")` で分岐し、修正ループと再配分を強制する。
+- 最終完了は supervisor movement の承認が必須。
+
 ## Notes
 - API仕様の正本は `docs/api/openapi.yaml`。
 - 通信規約の正本は `docs/guides/communication-protocol.md`。
 - `_index.yaml` と `_role-gap-index.yaml` の更新者は coordinator のみ。
-

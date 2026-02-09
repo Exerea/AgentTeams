@@ -1,0 +1,491 @@
+﻿name: agentteams-governance
+description: AgentTeams dedicated orchestration with parallel specialist review and leader gate
+max_iterations: 40
+initial_movement: coordinator-intake
+
+personas:
+  coordinator-leader: ../personas/coordinator-leader.md
+  implementer: ../personas/implementer.md
+  specialist-reviewer: ../personas/specialist-reviewer.md
+  role-gap-auditor: ../personas/role-gap-auditor.md
+  supervisor: ../personas/supervisor.md
+
+policies:
+  constitution: ../policies/constitution.md
+  handoff-and-gates: ../policies/handoff-and-gates.md
+  safety: ../policies/safety.md
+
+knowledge:
+  task-state: ../knowledge/task-state.md
+  routing: ../knowledge/routing.md
+  operations: ../knowledge/operations.md
+
+loop_monitors:
+  - cycle:
+      - specialist-reviews
+      - fix
+    threshold: 4
+    judge:
+      persona: supervisor
+      policy:
+        - constitution
+        - handoff-and-gates
+      instruction_template: |
+        specialist-reviews -> fix のループが {cycle_count} 回発生しました。
+        非生産的ループかどうかを判定してください。
+
+        判定基準:
+        - 同じ指摘が繰り返されているか
+        - 修正が Gate 充足に寄与しているか
+      rules:
+        - condition: 健全（改善あり）
+          next: specialist-reviews
+        - condition: 非生産的（改善なし）
+          next: coordinator-reroute
+
+movements:
+  - name: coordinator-intake
+    edit: true
+    permission_mode: edit
+    persona: coordinator-leader
+    policy:
+      - constitution
+      - handoff-and-gates
+      - safety
+    knowledge:
+      - task-state
+      - routing
+      - operations
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Edit
+      - Write
+      - Bash
+      - WebSearch
+      - WebFetch
+    instruction_template: |
+      AgentTeams coordinator としてタスクを受理し、以下を必ず実施してください。
+
+      1. `.codex/AGENTS.md` と `.codex/coordinator.md` を読み、task の制約を明文化
+      2. タスクを Goal / Constraints / Acceptance に分解
+      3. local_flags と warnings から必要な奉行レビューを抽出
+      4. handoff 戦略と Gate 計画を task notes/handoffs に反映
+
+      必須ルール:
+      - handoff memo の先頭は DECLARATION 形式
+      - blocked もしくは unresolved warning の場合は IMPROVEMENT_PROPOSAL を記録
+      - coordinator 以外に index 更新をさせない
+    rules:
+      - condition: 分解と配分が完了
+        next: implement
+      - condition: 情報不足で着手不可
+        next: ABORT
+    output_contracts:
+      report:
+        - name: 00-intake-plan.md
+          format: intake-plan
+
+  - name: implement
+    edit: true
+    permission_mode: edit
+    persona: implementer
+    policy:
+      - constitution
+      - handoff-and-gates
+      - safety
+    knowledge:
+      - task-state
+      - routing
+      - operations
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Edit
+      - Write
+      - Bash
+      - WebSearch
+      - WebFetch
+    instruction_template: |
+      実装奉行としてタスクを進めてください。
+
+      必須:
+      - 指定 task と関連コード/文書のみ更新
+      - local_flags に従って次工程を準備
+      - handoffs と notes に判断根拠を記録
+      - 検証コマンドを実行して結果を記録
+
+      禁止:
+      - Gate 省略
+      - 宣言形式を省く handoff
+    rules:
+      - condition: 実装と更新が完了
+        next: specialist-reviews
+      - condition: 実装せずレビュー依頼が妥当
+        next: specialist-reviews
+      - condition: 追加情報が必要
+        next: coordinator-reroute
+      - condition: ユーザー入力が必要
+        next: implement
+        requires_user_input: true
+        interactive_only: true
+    output_contracts:
+      report:
+        - name: 01-implementation.md
+          format: implementation
+
+  - name: specialist-reviews
+    parallel:
+      - name: backend-security-review
+        edit: false
+        persona: specialist-reviewer
+        policy:
+          - constitution
+          - handoff-and-gates
+          - safety
+        knowledge:
+          - task-state
+          - routing
+        allowed_tools:
+          - Read
+          - Glob
+          - Grep
+          - Bash
+          - WebSearch
+          - WebFetch
+        instruction_template: |
+          backend-security-review を実施してください。
+
+          判定ルール:
+          - `local_flags.backend_security_required=false` なら「不要」と根拠を示して approved
+          - `true` の場合は認証/認可/PII/API 変更を重点監査
+          - 問題があれば needs_fix、続行不能なら blocked
+        rules:
+          - condition: approved
+          - condition: needs_fix
+          - condition: blocked
+        output_contracts:
+          report:
+            - name: 02-backend-security-review.md
+              format: review
+
+      - name: ux-review
+        edit: false
+        persona: specialist-reviewer
+        policy:
+          - constitution
+          - handoff-and-gates
+        knowledge:
+          - task-state
+          - routing
+        allowed_tools:
+          - Read
+          - Glob
+          - Grep
+          - WebSearch
+          - WebFetch
+        instruction_template: |
+          ux-review を実施してください。
+
+          判定ルール:
+          - `local_flags.ux_review_required=false` なら根拠付き approved
+          - `true` の場合は導線・フォーム体験・ダークパターンを監査
+          - 問題があれば needs_fix、続行不能なら blocked
+        rules:
+          - condition: approved
+          - condition: needs_fix
+          - condition: blocked
+        output_contracts:
+          report:
+            - name: 03-ux-review.md
+              format: review
+
+      - name: protocol-review
+        edit: false
+        persona: specialist-reviewer
+        policy:
+          - constitution
+          - handoff-and-gates
+        knowledge:
+          - task-state
+          - routing
+        allowed_tools:
+          - Read
+          - Glob
+          - Grep
+          - WebSearch
+          - WebFetch
+        instruction_template: |
+          protocol-review を実施してください。
+
+          判定ルール:
+          - warning 構造、DECLARATION、handoff 文脈の整合を監査
+          - `warnings.status=open` が残る場合は needs_fix
+          - フォーマット破綻や必須項目欠落で続行不能なら blocked
+        rules:
+          - condition: approved
+          - condition: needs_fix
+          - condition: blocked
+        output_contracts:
+          report:
+            - name: 04-protocol-review.md
+              format: review
+
+      - name: docs-review
+        edit: false
+        persona: specialist-reviewer
+        policy:
+          - constitution
+          - handoff-and-gates
+        knowledge:
+          - task-state
+          - operations
+        allowed_tools:
+          - Read
+          - Glob
+          - Grep
+          - WebSearch
+          - WebFetch
+        instruction_template: |
+          docs-review を実施してください。
+
+          判定ルール:
+          - `local_flags.documentation_sync_required=false` なら根拠付き approved
+          - `true` の場合は README / guides / API 正本の同期を監査
+          - 不整合があれば needs_fix、情報欠落で続行不能なら blocked
+        rules:
+          - condition: approved
+          - condition: needs_fix
+          - condition: blocked
+        output_contracts:
+          report:
+            - name: 05-docs-review.md
+              format: review
+
+      - name: qa-code-review
+        edit: false
+        persona: specialist-reviewer
+        policy:
+          - constitution
+          - handoff-and-gates
+        knowledge:
+          - task-state
+          - operations
+        allowed_tools:
+          - Read
+          - Glob
+          - Grep
+          - Bash
+          - WebSearch
+          - WebFetch
+        instruction_template: |
+          qa-code-review を実施してください。
+
+          判定ルール:
+          - コード品質、回帰リスク、設計整合を監査
+          - 指摘があれば needs_fix
+          - 重大不整合で判断不能なら blocked
+        rules:
+          - condition: approved
+          - condition: needs_fix
+          - condition: blocked
+        output_contracts:
+          report:
+            - name: 06-qa-code-review.md
+              format: review
+
+      - name: qa-test-review
+        edit: false
+        persona: specialist-reviewer
+        policy:
+          - constitution
+          - handoff-and-gates
+        knowledge:
+          - task-state
+          - operations
+        allowed_tools:
+          - Read
+          - Glob
+          - Grep
+          - Bash
+          - WebSearch
+          - WebFetch
+        instruction_template: |
+          qa-test-review を実施してください。
+
+          判定ルール:
+          - テスト戦略、カバレッジ、再現性を監査
+          - 欠落があれば needs_fix
+          - テスト成立条件が不足していれば blocked
+        rules:
+          - condition: approved
+          - condition: needs_fix
+          - condition: blocked
+        output_contracts:
+          report:
+            - name: 07-qa-test-review.md
+              format: review
+
+      - name: role-gap-review
+        edit: false
+        persona: role-gap-auditor
+        policy:
+          - constitution
+          - handoff-and-gates
+        knowledge:
+          - task-state
+          - routing
+        allowed_tools:
+          - Read
+          - Glob
+          - Grep
+          - Bash
+          - WebSearch
+          - WebFetch
+        instruction_template: |
+          role-gap-review を実施してください。
+
+          判定ルール:
+          - 役割不足兆候（同一 warning の再発、handoff ping-pong、長期 blocked）を監査
+          - `.codex/states/_role-gap-index.yaml` と整合しない場合は needs_fix
+          - triage 不能なら blocked
+        rules:
+          - condition: approved
+          - condition: needs_fix
+          - condition: blocked
+        output_contracts:
+          report:
+            - name: 08-role-gap-review.md
+              format: review
+
+    rules:
+      - condition: any("blocked")
+        next: coordinator-reroute
+      - condition: any("needs_fix")
+        next: fix
+      - condition: all("approved")
+        next: supervise
+
+  - name: fix
+    edit: true
+    permission_mode: edit
+    persona: implementer
+    policy:
+      - constitution
+      - handoff-and-gates
+      - safety
+    knowledge:
+      - task-state
+      - routing
+      - operations
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Edit
+      - Write
+      - Bash
+      - WebSearch
+      - WebFetch
+    instruction_template: |
+      奉行レビュー指摘をもとに修正してください。
+
+      必須:
+      - 各指摘を一つずつ対応し、task notes/handoffs に結果を記録
+      - unresolved warning を減らす方向で更新
+      - 修正後に再検証を実施
+    rules:
+      - condition: 修正完了
+        next: specialist-reviews
+      - condition: 修正不能
+        next: coordinator-reroute
+    output_contracts:
+      report:
+        - name: 09-fix-validation.md
+          format: validation
+
+  - name: coordinator-reroute
+    edit: true
+    permission_mode: edit
+    persona: coordinator-leader
+    policy:
+      - constitution
+      - handoff-and-gates
+      - safety
+    knowledge:
+      - task-state
+      - routing
+      - operations
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Edit
+      - Write
+      - Bash
+      - WebSearch
+      - WebFetch
+    instruction_template: |
+      blocked や非生産的ループが発生したため、coordinator として再配分してください。
+
+      必須:
+      - 原因を分類し、IMPROVEMENT_PROPOSAL を追加
+      - 必要なら handoff 先ロールを変更
+      - 次に implement へ戻せる条件を明記
+    rules:
+      - condition: 再配分と改善提案の反映完了
+        next: implement
+      - condition: 継続不能
+        next: ABORT
+    output_contracts:
+      report:
+        - name: 10-reroute-plan.md
+          format: validation
+
+  - name: supervise
+    edit: false
+    persona: supervisor
+    policy:
+      - constitution
+      - handoff-and-gates
+      - safety
+    knowledge:
+      - task-state
+      - routing
+      - operations
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Bash
+      - WebSearch
+      - WebFetch
+    instruction_template: |
+      最終承認を実施してください。
+
+      判定条件:
+      - 必須 Gate が全て満たされている
+      - unresolved warning がない
+      - handoff 宣言と証跡が揃っている
+
+      満たさない場合は具体的な差し戻し理由を出してください。
+    rules:
+      - condition: 奉行レビューが全てOKでリーダー承認
+        next: COMPLETE
+      - condition: 追加修正が必要
+        next: fix
+      - condition: 追加調査が必要
+        next: coordinator-reroute
+    output_contracts:
+      report:
+        - Validation: 11-supervisor-validation.md
+        - Summary: summary.md
+
+report_formats:
+  intake-plan: ../output-contracts/intake-plan.md
+  implementation: ../output-contracts/implementation.md
+  review: ../output-contracts/review.md
+  validation: ../output-contracts/validation.md
+  summary: ../output-contracts/summary.md

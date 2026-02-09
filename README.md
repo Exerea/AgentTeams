@@ -37,6 +37,7 @@ Template Repo 前提で各プロジェクトに同梱して使う、マルチAI�
 ## クイックスタート
 - 運用シナリオ正本: `docs/guides/request-routing-scenarios.md`
 - ルール判定例正本: `docs/guides/rule-examples.md`
+- TAKT運用ガイド: `docs/guides/takt-orchestration.md`
 - 依頼文テンプレは `User Request` をコピーして使う
 - `coordinatorとして処理して` は推奨文であり必須ではない（coordinator がデフォルト受理）
 
@@ -55,6 +56,7 @@ agentteams doctor
 agentteams sync
 agentteams report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
 agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
+agentteams orchestrate --task-file <TASK-*.yaml>
 ```
 ```bash
 ./agentteams init
@@ -65,6 +67,7 @@ agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role
 ./agentteams sync
 ./agentteams report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
 ./agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
+./agentteams orchestrate --task-file <TASK-*.yaml>
 ```
 ```powershell
 at init
@@ -75,6 +78,7 @@ at doctor
 at sync
 at report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
 at guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
+at orchestrate --task-file <TASK-*.yaml>
 ```
 - Windows では `at` が `C:\Windows\System32\at.exe` に解決される場合があるため、`agentteams` を優先する
 - `--agents-policy coexist|replace|keep`（既定: `coexist`）
@@ -89,6 +93,30 @@ at guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> 
 - 標準フロー: `agentteams sync` -> `agentteams report-incident` -> `validate-repo`
 - `bootstrap-agent-teams` は `agentteams init` の内部実装として呼び出される
 - `agentteams init` 実行には `python`（または `py -3` / `python3`）が必要
+
+## TAKTオーケストレーション（v3）
+- AgentTeams は `.takt/` を同梱し、`takt` の piece で奉行レビューの並列実行と修正ループを強制する。
+- 専用 piece: `.takt/pieces/agentteams-governance.yaml`
+- `agentteams doctor` は TAKT piece 配置と `takt` コマンド有無も診断する。
+
+### 実行フロー（推奨）
+1. `agentteams sync`
+2. `agentteams orchestrate --task-file ./.codex/states/TASK-xxxxx-your-task.yaml`
+3. `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1`
+
+### `orchestrate` オプション
+- `--piece <path>`: 既定は `.takt/pieces/agentteams-governance.yaml`
+- `--provider <claude|codex|mock>`, `--model <name>`: TAKT 実行モデルを上書き
+- `--with-git`: `--skip-git` を無効化して git 操作付きで実行
+- `--no-post-validate`: 実行後の検証をスキップ
+- `--strict-operation-evidence`: `validate-operation-evidence` 失敗をエラー扱い
+- `--min-teams <n>`, `--min-roles <n>`: 分散証跡のしきい値
+
+### 構造監査（問題点の炙り出し）
+```powershell
+python .\scripts\audit-agentteams-structure.py --states-dir .\.codex\states --log .\logs\e2e-ai-log.md --min-teams 3 --min-roles 5 --output .\docs\guides\takt-gap-analysis.md
+```
+- 監査結果サンプル: `docs/guides/takt-gap-analysis.md`
 
 ### 内部互換コマンド（通常は不要）
 ```powershell
