@@ -54,6 +54,7 @@ paths_to_copy=(
   "README.md"
   ".gitleaks.toml"
   ".github"
+  ".takt"
   ".codex"
   "docs"
   "shared"

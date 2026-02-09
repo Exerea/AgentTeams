@@ -21,6 +21,7 @@ INCIDENT_CACHE_META = Path(".codex") / "cache" / "incident-registry.meta.yaml"
 INCIDENT_CACHE_INCIDENTS_DIR = Path(".codex") / "cache" / "incidents"
 INCIDENT_CANDIDATE_DIR = Path(".codex") / "cache" / "incident-candidates"
 INCIDENT_CANDIDATE_INDEX = INCIDENT_CANDIDATE_DIR / "_index.yaml"
+DEFAULT_TAKT_PIECE = Path(".takt") / "pieces" / "agentteams-governance.yaml"
 
 TASK_FILE_NAME_PATTERN = re.compile(r"^TASK-\d{5}-[a-z0-9]+(?:-[a-z0-9]+)*\.yaml$")
 WARNING_CODE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]+$")
@@ -68,6 +69,12 @@ def usage() -> None:
         "--role <role> --task <task_id|N/A> --task-title <title> --message-file <path> "
         "--task-file <TASK-*.yaml> [--log <path>] [--emit-fixed-file <path>] [--verbose]"
     )
+    print(
+        "  agentteams orchestrate --task-file <TASK-*.yaml> "
+        "[--piece <path>] [--provider <claude|codex|mock>] [--model <name>] "
+        "[--with-git] [--no-post-validate] [--strict-operation-evidence] "
+        "[--min-teams <n>] [--min-roles <n>] [--verbose]"
+    )
     print("Compatibility aliases:")
     print(
         "  at init [<git-url>] [-w|--workspace <path>] "
@@ -78,6 +85,12 @@ def usage() -> None:
         "  at guard-chat --event <task_start|role_switch|gate> --team <team> "
         "--role <role> --task <task_id|N/A> --task-title <title> --message-file <path> "
         "--task-file <TASK-*.yaml> [--log <path>] [--emit-fixed-file <path>] [--verbose]"
+    )
+    print(
+        "  at orchestrate --task-file <TASK-*.yaml> "
+        "[--piece <path>] [--provider <claude|codex|mock>] [--model <name>] "
+        "[--with-git] [--no-post-validate] [--strict-operation-evidence] "
+        "[--min-teams <n>] [--min-roles <n>] [--verbose]"
     )
     if os.name == "nt":
         print("  .\\at.cmd <subcommand> ...")
@@ -323,6 +336,14 @@ def ensure_git_available() -> int:
     return 0
 
 
+def resolve_takt_command() -> str:
+    for candidate in ("takt", "takt.cmd", "takt.exe"):
+        path = shutil.which(candidate)
+        if path:
+            return path
+    return ""
+
+
 def resolve_repo_url_interactive(repo_url: str) -> tuple[str, int]:
     if repo_url:
         return repo_url, 0
@@ -446,6 +467,24 @@ def doctor(verbose: bool) -> int:
         print(f"OK [AGENTS_LOCAL_PRESENT] local rules file present: {local_agents.as_posix()}")
     else:
         is_verbose_enabled(verbose, f"no local rules backup file: {local_agents.as_posix()}")
+
+    takt_piece = target_root / DEFAULT_TAKT_PIECE
+    if takt_piece.exists():
+        print(f"OK [TAKT_PIECE_OK] found: {takt_piece.as_posix()}")
+    else:
+        has_warning = True
+        print(
+            f"WARN [TAKT_PIECE_MISSING] missing AgentTeams piece: {takt_piece.as_posix()}"
+        )
+
+    takt_command = resolve_takt_command()
+    if takt_command:
+        print(f"OK [TAKT_COMMAND_OK] takt command detected: {takt_command}")
+    else:
+        has_warning = True
+        print(
+            "WARN [TAKT_COMMAND_MISSING] takt command not found. Install with: npm install -g takt"
+        )
 
     if has_error or has_warning:
         print(f"Next: {cli_command('init --here', include_compat=True)}")
@@ -762,6 +801,392 @@ def parse_report_incident_args(args: list[str]) -> tuple[str, str, str, str, boo
         )
 
     return task_file, warning_code, summary, project, verbose, 0
+
+
+def extract_task_metadata(task_path: Path) -> tuple[str, str]:
+    task_id = "N/A"
+    title = task_path.name
+    for line in read_text_or_empty(task_path).splitlines():
+        m_id = re.match(r"^id\s*:\s*(.+)$", line)
+        if m_id:
+            task_id = normalize_scalar(m_id.group(1)) or task_id
+            continue
+        m_title = re.match(r"^title\s*:\s*(.+)$", line)
+        if m_title:
+            title = normalize_scalar(m_title.group(1)) or title
+    return task_id, title
+
+
+def build_orchestrate_task_prompt(task_rel: str, task_id: str, title: str) -> str:
+    safe_task_rel = sanitize_single_line(task_rel, max_len=280)
+    safe_task_id = sanitize_single_line(task_id, max_len=80)
+    safe_title = sanitize_single_line(title, max_len=200)
+    lines = [
+        "AgentTeams TAKT orchestration task.",
+        f"Target task file: {safe_task_rel}",
+        f"Task ID: {safe_task_id}",
+        f"Task title: {safe_title}",
+        "",
+        "Mission:",
+        "- Execute the task using AgentTeams governance rules with strict role distribution.",
+        "- Continue review/fix loops until specialist reviewers and leader supervisor approve.",
+        "",
+        "Required reads (before decision):",
+        "- .codex/AGENTS.md",
+        "- .codex/coordinator.md",
+        "- docs/guides/communication-protocol.md",
+        "- docs/guides/request-routing-scenarios.md",
+        "",
+        "Execution requirements:",
+        "- Decompose into Goal/Constraints/Acceptance and record in task notes.",
+        "- Maintain DECLARATION format in handoff memo first line.",
+        "- Respect local_flags and warnings for gate decisions.",
+        "- For blocked or unresolved warnings, add IMPROVEMENT_PROPOSAL evidence.",
+        "- Keep edits scoped to this task and required implementation/doc files.",
+        "",
+        "Validation requirements:",
+        "- Ensure validate-task-state passes for the target task.",
+        "- Keep reviewer evidence explicit (Security/UX/Protocol/Docs/QA/Role Gap).",
+        "",
+        "Output:",
+        "- Complete with all specialist approvals and final leader approval, or abort with concrete blockers.",
+    ]
+    return "\n".join(lines)
+
+
+def parse_orchestrate_args(
+    args: list[str],
+) -> tuple[str, str, str, str, bool, bool, bool, int, int, bool, int]:
+    task_file = ""
+    piece = DEFAULT_TAKT_PIECE.as_posix()
+    provider = ""
+    model = ""
+    skip_git = True
+    post_validate = True
+    strict_operation_evidence = False
+    min_teams = 3
+    min_roles = 5
+    verbose = False
+
+    idx = 0
+    while idx < len(args):
+        token = args[idx]
+        if token == "--task-file":
+            if idx + 1 >= len(args):
+                return "", "", "", "", True, True, False, 3, 5, False, fail(
+                    "PATH_LAYOUT_INVALID",
+                    "--task-file requires a value.",
+                    "Usage: agentteams orchestrate --task-file <TASK-*.yaml>",
+                )
+            task_file = args[idx + 1]
+            idx += 2
+            continue
+        if token == "--piece":
+            if idx + 1 >= len(args):
+                return "", "", "", "", True, True, False, 3, 5, False, fail(
+                    "PATH_LAYOUT_INVALID",
+                    "--piece requires a value.",
+                    "Usage: agentteams orchestrate --piece <path>",
+                )
+            piece = args[idx + 1]
+            idx += 2
+            continue
+        if token == "--provider":
+            if idx + 1 >= len(args):
+                return "", "", "", "", True, True, False, 3, 5, False, fail(
+                    "PATH_LAYOUT_INVALID",
+                    "--provider requires a value.",
+                    "Usage: agentteams orchestrate --provider <claude|codex|mock>",
+                )
+            provider = args[idx + 1].strip()
+            idx += 2
+            continue
+        if token == "--model":
+            if idx + 1 >= len(args):
+                return "", "", "", "", True, True, False, 3, 5, False, fail(
+                    "PATH_LAYOUT_INVALID",
+                    "--model requires a value.",
+                    "Usage: agentteams orchestrate --model <name>",
+                )
+            model = args[idx + 1].strip()
+            idx += 2
+            continue
+        if token == "--with-git":
+            skip_git = False
+            idx += 1
+            continue
+        if token == "--skip-git":
+            skip_git = True
+            idx += 1
+            continue
+        if token == "--no-post-validate":
+            post_validate = False
+            idx += 1
+            continue
+        if token == "--strict-operation-evidence":
+            strict_operation_evidence = True
+            idx += 1
+            continue
+        if token == "--min-teams":
+            if idx + 1 >= len(args):
+                return "", "", "", "", True, True, False, 3, 5, False, fail(
+                    "PATH_LAYOUT_INVALID",
+                    "--min-teams requires a value.",
+                    "Usage: agentteams orchestrate --min-teams <n>",
+                )
+            min_teams = parse_int(args[idx + 1], fallback=-1)
+            idx += 2
+            continue
+        if token == "--min-roles":
+            if idx + 1 >= len(args):
+                return "", "", "", "", True, True, False, 3, 5, False, fail(
+                    "PATH_LAYOUT_INVALID",
+                    "--min-roles requires a value.",
+                    "Usage: agentteams orchestrate --min-roles <n>",
+                )
+            min_roles = parse_int(args[idx + 1], fallback=-1)
+            idx += 2
+            continue
+        if token == "--verbose":
+            verbose = True
+            idx += 1
+            continue
+        return "", "", "", "", True, True, False, 3, 5, False, fail(
+            "PATH_LAYOUT_INVALID",
+            f"unknown option for orchestrate: {token}",
+            "Usage: agentteams orchestrate --task-file <TASK-*.yaml> [--piece <path>] [--provider <claude|codex|mock>] [--model <name>] [--with-git] [--no-post-validate] [--strict-operation-evidence] [--min-teams <n>] [--min-roles <n>] [--verbose]",
+        )
+
+    if not task_file:
+        return "", "", "", "", True, True, False, 3, 5, False, fail(
+            "PATH_LAYOUT_INVALID",
+            "--task-file is required.",
+            "Usage: agentteams orchestrate --task-file <TASK-*.yaml>",
+        )
+    if min_teams < 1:
+        return "", "", "", "", True, True, False, 3, 5, False, fail(
+            "PATH_LAYOUT_INVALID",
+            "--min-teams must be >= 1.",
+            "Usage: agentteams orchestrate --min-teams <n>",
+        )
+    if min_roles < 1:
+        return "", "", "", "", True, True, False, 3, 5, False, fail(
+            "PATH_LAYOUT_INVALID",
+            "--min-roles must be >= 1.",
+            "Usage: agentteams orchestrate --min-roles <n>",
+        )
+
+    return (
+        task_file,
+        piece,
+        provider,
+        model,
+        skip_git,
+        post_validate,
+        strict_operation_evidence,
+        min_teams,
+        min_roles,
+        verbose,
+        0,
+    )
+
+
+def run_task_state_validation(
+    template_root: Path,
+    target_root: Path,
+    task_path: Path,
+    verbose: bool,
+) -> int:
+    if os.name == "nt":
+        validator = template_root / "scripts" / "validate-task-state.ps1"
+        if not validator.exists():
+            return fail("PATH_LAYOUT_INVALID", f"missing validator script: {validator.as_posix()}")
+        code, _ = run_cmd(
+            [
+                "powershell",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(validator),
+                "-Path",
+                str(task_path),
+            ],
+            cwd=target_root,
+        )
+        if code != 0:
+            return fail(
+                "TAKT_POST_VALIDATE_FAILED",
+                f"validate-task-state failed: {task_path.as_posix()}",
+                "Fix task file and retry orchestrate.",
+            )
+        return 0
+
+    validator = template_root / "scripts" / "validate-task-state.sh"
+    if not validator.exists():
+        return fail("PATH_LAYOUT_INVALID", f"missing validator script: {validator.as_posix()}")
+    code, _ = run_cmd(["bash", str(validator), str(task_path)], cwd=target_root)
+    if code != 0:
+        return fail(
+            "TAKT_POST_VALIDATE_FAILED",
+            f"validate-task-state failed: {task_path.as_posix()}",
+            "Fix task file and retry orchestrate.",
+        )
+    is_verbose_enabled(verbose, "validate-task-state passed")
+    return 0
+
+
+def run_operation_evidence_validation(
+    template_root: Path,
+    target_root: Path,
+    task_rel: str,
+    min_teams: int,
+    min_roles: int,
+    strict: bool,
+) -> int:
+    validator = template_root / "scripts" / "validate-operation-evidence.py"
+    if not validator.exists():
+        if strict:
+            return fail("PATH_LAYOUT_INVALID", f"missing validator script: {validator.as_posix()}")
+        warn("PATH_LAYOUT_INVALID", f"operation validator is missing: {validator.as_posix()}")
+        return 0
+
+    code, _ = run_cmd(
+        [
+            sys.executable,
+            str(validator),
+            "--task-file",
+            task_rel,
+            "--log",
+            CHAT_LOG_RELATIVE_PATH.as_posix(),
+            "--min-teams",
+            str(min_teams),
+            "--min-roles",
+            str(min_roles),
+        ],
+        cwd=target_root,
+    )
+    if code == 0:
+        return 0
+
+    message = (
+        "validate-operation-evidence failed. "
+        "This usually means role distribution or read/declaration evidence is insufficient."
+    )
+    if strict:
+        return fail("TAKT_OPERATION_EVIDENCE_FAILED", message, "Fix evidence and retry orchestrate.")
+    warn("TAKT_OPERATION_EVIDENCE_WARN", message, "Retry with --strict-operation-evidence to hard-fail.")
+    return 0
+
+
+def orchestrate_task(
+    template_root: Path,
+    task_file: str,
+    piece: str,
+    provider: str,
+    model: str,
+    skip_git: bool,
+    post_validate: bool,
+    strict_operation_evidence: bool,
+    min_teams: int,
+    min_roles: int,
+    verbose: bool,
+) -> int:
+    target_root = resolve_target_root_here()
+    if target_root is None:
+        return fail(
+            "AGENT_CONTEXT_MISSING",
+            "agentteams orchestrate must run inside a git repository.",
+            f"Next: {cli_command('init', include_compat=True)}",
+        )
+
+    takt_command = resolve_takt_command()
+    if not takt_command:
+        return fail(
+            "TAKT_COMMAND_MISSING",
+            "takt command not found.",
+            "Install TAKT first: npm install -g takt",
+        )
+
+    task_path = resolve_task_file_path(task_file, target_root)
+    if not task_path.exists():
+        return fail(
+            "PATH_LAYOUT_INVALID",
+            f"task file not found: {task_path.as_posix()}",
+            "Retry: agentteams orchestrate --task-file ./.codex/states/TASK-xxxxx-your-task.yaml",
+        )
+    if not task_path.is_file():
+        return fail("PATH_LAYOUT_INVALID", f"task path is not a file: {task_path.as_posix()}")
+    if not task_path.is_relative_to(target_root):
+        return fail("PATH_LAYOUT_INVALID", "task file must be inside current repository.")
+    if not TASK_FILE_NAME_PATTERN.fullmatch(task_path.name):
+        return fail(
+            "PATH_LAYOUT_INVALID",
+            f"task filename must match TASK-xxxxx-slug.yaml: {task_path.name}",
+        )
+
+    piece_input = normalize_scalar(piece) or DEFAULT_TAKT_PIECE.as_posix()
+    piece_path = Path(piece_input).expanduser()
+    if not piece_path.is_absolute():
+        piece_path = (target_root / piece_path).resolve()
+    if not piece_path.exists():
+        return fail(
+            "PATH_LAYOUT_INVALID",
+            f"piece file not found: {piece_path.as_posix()}",
+            "Retry: agentteams init --here",
+        )
+    if not piece_path.is_file():
+        return fail("PATH_LAYOUT_INVALID", f"piece path is not a file: {piece_path.as_posix()}")
+
+    task_rel = task_path.relative_to(target_root).as_posix()
+    task_id, task_title = extract_task_metadata(task_path)
+    task_prompt = build_orchestrate_task_prompt(task_rel, task_id, task_title)
+
+    command = [
+        takt_command,
+        "--pipeline",
+        "--task",
+        task_prompt,
+        "--piece",
+        piece_path.as_posix(),
+    ]
+    if skip_git:
+        command.append("--skip-git")
+    if provider:
+        command.extend(["--provider", provider])
+    if model:
+        command.extend(["--model", model])
+
+    is_verbose_enabled(verbose, f"orchestrate command: {' '.join(command)}")
+    code, _ = run_cmd(command, cwd=target_root)
+    if code != 0:
+        return fail(
+            "TAKT_ORCHESTRATE_FAILED",
+            "takt pipeline execution failed.",
+            "Inspect TAKT output and retry orchestrate.",
+        )
+
+    if post_validate:
+        code = run_task_state_validation(template_root, target_root, task_path, verbose)
+        if code != 0:
+            return code
+        code = run_operation_evidence_validation(
+            template_root,
+            target_root,
+            task_rel,
+            min_teams,
+            min_roles,
+            strict_operation_evidence,
+        )
+        if code != 0:
+            return code
+
+    print(
+        "OK [TAKT_ORCHESTRATE_OK] "
+        f"task={task_id} piece={piece_path.as_posix()} post_validate={'yes' if post_validate else 'no'}"
+    )
+    print(f"Next: {cli_command('doctor', include_compat=True)}")
+    return 0
 
 
 def parse_incident_index(path: Path) -> list[dict[str, str]]:
@@ -1572,12 +1997,12 @@ def main(argv: list[str]) -> int:
     command = args[0]
     command_args = args[1:]
 
-    if command not in {"init", "doctor", "sync", "report-incident", "guard-chat"}:
+    if command not in {"init", "doctor", "sync", "report-incident", "guard-chat", "orchestrate"}:
         usage()
         return fail(
             "PATH_LAYOUT_INVALID",
             f"unknown subcommand: {command}",
-            "Usage: agentteams init [<git-url>] | agentteams init --here | agentteams doctor | agentteams sync | agentteams report-incident | agentteams guard-chat",
+            "Usage: agentteams init [<git-url>] | agentteams init --here | agentteams doctor | agentteams sync | agentteams report-incident | agentteams guard-chat | agentteams orchestrate",
         )
 
     if command == "doctor":
@@ -1631,6 +2056,36 @@ def main(argv: list[str]) -> int:
 
     if command == "guard-chat":
         return guard_chat(command_args)
+
+    if command == "orchestrate":
+        (
+            task_file,
+            piece,
+            provider,
+            model,
+            skip_git,
+            post_validate,
+            strict_operation_evidence,
+            min_teams,
+            min_roles,
+            verbose,
+            parse_code,
+        ) = parse_orchestrate_args(command_args)
+        if parse_code != 0:
+            return parse_code
+        return orchestrate_task(
+            template_root,
+            task_file,
+            piece,
+            provider,
+            model,
+            skip_git,
+            post_validate,
+            strict_operation_evidence,
+            min_teams,
+            min_roles,
+            verbose,
+        )
 
     task_file, warning_code, summary, project, verbose, parse_code = parse_report_incident_args(command_args)
     if parse_code != 0:

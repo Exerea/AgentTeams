@@ -66,6 +66,7 @@ try {
   }
   Invoke-PythonScript -ScriptPath .\scripts\validate-incident-sync-freshness.py
   Invoke-PythonScript -ScriptPath .\scripts\detect-recurring-incident.py
+  Invoke-PythonScript -ScriptPath .\scripts\audit-agentteams-structure.py -Arguments @('--states-dir', '.\.codex\states', '--log', '.\logs\e2e-ai-log.md', '--min-teams', '3', '--min-roles', '5')
 
   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.ps1
   if ($LASTEXITCODE -ne 0) { throw 'validate-secrets.ps1 failed' }

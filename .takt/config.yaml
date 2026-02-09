@@ -1,0 +1,8 @@
+﻿language: ja
+default_piece: agentteams-governance
+log_level: info
+provider: codex
+notification_sound: false
+concurrency: 1
+task_poll_interval_ms: 500
+interactive_preview_movements: 3

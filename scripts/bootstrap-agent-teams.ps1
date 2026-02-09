@@ -65,6 +65,7 @@ $pathsToCopy = @(
   'README.md',
   '.gitleaks.toml',
   '.github',
+  '.takt',
   '.codex',
   'docs',
   'shared',

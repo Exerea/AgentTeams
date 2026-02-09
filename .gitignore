@@ -1,0 +1,10 @@
+# TAKT runtime artifacts
+.takt/tasks/
+.takt/completed/
+.takt/reports/
+.takt/logs/
+.takt/session-state/
+
+# Python cache
+__pycache__/
+*.pyc
