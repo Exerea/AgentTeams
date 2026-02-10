@@ -11,28 +11,17 @@ Push-Location $repoRoot
 function Invoke-PythonScript {
   param(
     [Parameter(Mandatory = $true)][string]$ScriptPath,
-    [string[]]$Arguments = @(),
-    [switch]$Quiet
+    [string[]]$Arguments = @()
   )
 
   if (Get-Command python -ErrorAction SilentlyContinue) {
-    if ($Quiet) {
-      & python $ScriptPath @Arguments *> $null
-    }
-    else {
-      & python $ScriptPath @Arguments
-    }
+    & python $ScriptPath @Arguments
     if ($LASTEXITCODE -ne 0) { throw "python script failed: $ScriptPath" }
     return
   }
 
   if (Get-Command py -ErrorAction SilentlyContinue) {
-    if ($Quiet) {
-      & py -3 $ScriptPath @Arguments *> $null
-    }
-    else {
-      & py -3 $ScriptPath @Arguments
-    }
+    & py -3 $ScriptPath @Arguments
     if ($LASTEXITCODE -ne 0) { throw "python script failed: $ScriptPath" }
     return
   }
@@ -41,31 +30,10 @@ function Invoke-PythonScript {
 }
 
 try {
-  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-states-index.ps1 -Path .\.codex\states\_index.yaml
-  if ($LASTEXITCODE -ne 0) { throw 'validate-states-index.ps1 failed' }
-
-  Get-ChildItem .\.codex\states\TASK-*.yaml | ForEach-Object {
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-task-state.ps1 -Path $_.FullName
-    if ($LASTEXITCODE -ne 0) { throw "validate-task-state.ps1 failed for $($_.Name)" }
-  }
-
+  Invoke-PythonScript -ScriptPath .\scripts\validate-takt-task.py -Arguments @('--path', '.takt/tasks')
+  Invoke-PythonScript -ScriptPath .\scripts\validate-takt-evidence.py -Arguments @('--allow-empty-logs')
   Invoke-PythonScript -ScriptPath .\scripts\validate-doc-consistency.py
-  Invoke-PythonScript -ScriptPath .\scripts\validate-self-update-evidence.py -Arguments @('--help') -Quiet
   Invoke-PythonScript -ScriptPath .\scripts\validate-scenarios-structure.py
-  Invoke-PythonScript -ScriptPath .\scripts\validate-rule-examples-coverage.py
-  Invoke-PythonScript -ScriptPath .\scripts\detect-role-gaps.py
-  Invoke-PythonScript -ScriptPath .\scripts\validate-role-gap-review.py
-  Invoke-PythonScript -ScriptPath .\scripts\validate-deprecated-assets.py
-  Invoke-PythonScript -ScriptPath .\scripts\validate-chat-declaration.py
-  Invoke-PythonScript -ScriptPath .\scripts\validate-chat-guard-usage.py
-  if (Test-Path -LiteralPath .\knowledge\incidents\_index.yaml -PathType Leaf) {
-    Invoke-PythonScript -ScriptPath .\scripts\validate-incident-registry.py
-  }
-  else {
-    Write-Host 'WARN [INCIDENT_REGISTRY_MISSING] knowledge/incidents/_index.yaml not found; registry validation skipped.'
-  }
-  Invoke-PythonScript -ScriptPath .\scripts\validate-incident-sync-freshness.py
-  Invoke-PythonScript -ScriptPath .\scripts\detect-recurring-incident.py
 
   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.ps1
   if ($LASTEXITCODE -ne 0) { throw 'validate-secrets.ps1 failed' }

@@ -1,0 +1,55 @@
+id: T-00110
+title: 会員ランクテーブル追加とマイグレーション実装
+status: in_review
+task: 'Title: 会員ランクテーブル追加とマイグレーション実装
+
+
+  Execution instruction:
+
+  ADR gate 条件を満たしたため実装着手。Security先行レビュー後、ロールバック手順を含めてレビュー待ち。
+
+
+  Required review flags:
+
+  - qa_required: true
+
+  - security_required: true
+
+  - ux_required: false
+
+  - docs_required: true
+
+  - research_required: false'
+goal: ''
+constraints: []
+acceptance: []
+flags:
+  qa_required: true
+  security_required: true
+  ux_required: false
+  docs_required: true
+  research_required: false
+warnings: []
+handoffs:
+- from: documentation-guild/adr-manager
+  to: backend/db-specialist
+  at: 2026-02-07 02:20:00+00:00
+  memo: DECLARATION team=documentation-guild role=adr-manager task=T-110 action=handoff_to_db_specialist
+    | ADR gate satisfied。実装着手可。
+- from: backend/db-specialist
+  to: backend/security-expert
+  at: 2026-02-07 02:40:00+00:00
+  memo: DECLARATION team=backend role=db-specialist task=T-110 action=handoff_to_backend_security
+    | tier テーブルと migration 実装完了。Security 先行レビューを依頼。
+- from: backend/security-expert
+  to: documentation-guild/api-spec-owner
+  at: 2026-02-07 02:45:00+00:00
+  memo: DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_api_spec_owner
+    | 重大指摘なし。OpenAPI 同期へ進行可。
+- from: documentation-guild/api-spec-owner
+  to: qa-review-guild/code-critic
+  at: '2026-02-07T02:50:00Z'
+  memo: DECLARATION team=documentation-guild role=api-spec-owner task=T-110 action=handoff_to_code_critic
+    | OpenAPI sync completed. Proceed to QA review.
+notes: ADR gate 条件を満たしたため実装着手。Security先行レビュー後、ロールバック手順を含めてレビュー待ち。
+updated_at: '2026-02-07T02:45:00Z'

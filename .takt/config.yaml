@@ -1,0 +1,6 @@
+language: ja
+default_piece: agentteams-governance
+provider: codex
+interactive_preview_movements: 2
+pipeline:
+  default_branch_prefix: feat/agentteams

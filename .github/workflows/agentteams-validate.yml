@@ -7,44 +7,73 @@ on:
       - main
 
 jobs:
-  validate-index-windows:
+  validate-takt-task-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate states index (PowerShell)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install Python deps
         shell: pwsh
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-states-index.ps1 -Path .\.codex\states\_index.yaml
+          python -m pip install --upgrade pip
+          python -m pip install pyyaml
+      - name: Validate TAKT task schema (Windows)
+        shell: pwsh
+        run: |
+          python scripts/validate-takt-task.py --path .takt/tasks
 
-  validate-index-linux:
+  validate-takt-task-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate states index (Bash)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install Python deps
         run: |
-          bash ./scripts/validate-states-index.sh ./.codex/states/_index.yaml
-
-  validate-task-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Validate all task states (PowerShell)
-        shell: pwsh
+          python -m pip install --upgrade pip
+          python -m pip install pyyaml
+      - name: Validate TAKT task schema (Linux)
         run: |
-          Get-ChildItem .\.codex\states\TASK-*.yaml | ForEach-Object {
-            powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-task-state.ps1 -Path $_.FullName
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
+          python scripts/validate-takt-task.py --path .takt/tasks
 
-  validate-task-linux:
+  validate-takt-evidence-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate all task states (Bash)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install Python deps
         run: |
-          for f in ./.codex/states/TASK-*.yaml; do
-            bash ./scripts/validate-task-state.sh "$f"
-          done
+          python -m pip install --upgrade pip
+          python -m pip install pyyaml
+      - name: Validate TAKT evidence
+        run: |
+          python scripts/validate-takt-evidence.py --allow-empty-logs
+
+  orchestrate-smoke-mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyyaml
+      - name: Install TAKT
+        run: |
+          npm install -g takt
+      - name: Orchestrate smoke test (mock)
+        run: |
+          python scripts/at.py orchestrate --task-file .takt/tasks/TASK-00140-final-code-review.yaml --provider mock --no-post-validate --verbose
 
   validate-doc-consistency:
     runs-on: ubuntu-latest
@@ -53,142 +82,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Validate documentation consistency
+      - name: Validate docs and script consistency
         run: |
           python scripts/validate-doc-consistency.py
-
-  validate-scenarios-structure:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Validate request routing scenarios structure
-        run: |
-          python scripts/validate-scenarios-structure.py
-
-  validate-rule-examples-coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Validate rule examples coverage
-        run: |
-          python scripts/validate-rule-examples-coverage.py
-
-  detect-role-gaps:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Detect role gaps
-        run: |
-          python scripts/detect-role-gaps.py
-
-  validate-role-gap-review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Detect role gaps for latest snapshot
-        run: |
-          python scripts/detect-role-gaps.py
-      - name: Validate role gap review
-        run: |
-          python scripts/validate-role-gap-review.py
-
-  validate-deprecated-assets:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Validate deprecated assets
-        run: |
-          python scripts/validate-deprecated-assets.py
-
-  validate-chat-declaration:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Validate chat declaration log
-        run: |
-          python scripts/validate-chat-declaration.py
-
-  validate-chat-guard-usage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Validate guard-chat usage evidence
-        run: |
-          python scripts/validate-chat-guard-usage.py
-
-  validate-incident-registry:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Validate incident registry schema
-        run: |
-          python scripts/validate-incident-registry.py
-
-  validate-incident-sync-freshness:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Sync incident registry cache
-        run: |
-          git tag -f ci-sync-ref "$GITHUB_SHA"
-          python scripts/at.py sync --source . --ref ci-sync-ref --verbose
-      - name: Validate incident sync freshness (CI mode)
-        run: |
-          python scripts/validate-incident-sync-freshness.py --ci
-
-  detect-recurring-incident:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Sync incident registry cache
-        run: |
-          git tag -f ci-sync-ref "$GITHUB_SHA"
-          python scripts/at.py sync --source . --ref ci-sync-ref --verbose
-      - name: Detect recurring incidents
-        run: |
-          python scripts/detect-recurring-incident.py
-
-  operation-smoke-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: AgentTeams operation smoke test (fixture)
-        shell: pwsh
-        run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-agentteams-operation.ps1 -UseFixtureRepo -MinTeams 3 -MinRoles 5
 
   validate-secrets-linux:
     runs-on: ubuntu-latest

@@ -1,68 +1,70 @@
-# Architecture Guide
+# Architecture (v4)
 
-## Purpose
-AgentTeams の運用制御、役割連携、主要ゲートを俯瞰する。
+## Overview
 
-## Multi-Guild Flow (Mermaid)
-```mermaid
-flowchart LR
-  USER[User Request] --> COORD[coordinator]
-  COORD --> TASK[TASK-*.yaml]
+AgentTeams v4 is a TAKT-first orchestration architecture with a single execution source of truth.
 
-  TASK --> UID[frontend/ui-designer]
-  UID --> UX[frontend/ux-specialist]
-  UX --> FSEC{frontend security required?}
-  FSEC -- yes --> FSECR[frontend/security-expert]
-  FSEC -- no --> QA1
-  FSECR --> QA1[qa-review-guild/code-critic]
-  QA1 --> QA2[qa-review-guild/test-architect]
+### Core Principles
 
-  TASK --> BAPI[backend/api-architect]
-  BAPI --> BDB[backend/db-specialist]
-  BDB --> BSEC[backend/security-expert]
-  BSEC --> QA1
+- One runtime authority: `.takt/`
+- One task authority: `.takt/tasks/TASK-*.yaml`
+- One governance piece: `.takt/pieces/agentteams-governance.yaml`
+- No runtime fallback to legacy operation
 
-  TASK --> WARN{Protocol Warning?}
-  WARN -- yes --> IA[protocol-team/interaction-auditor]
-  IA --> PA[protocol-team/protocol-architect]
-  PA --> PO[protocol-team/prompt-optimizer]
-  PO --> DOCADR
+## Topology
 
-  TASK --> DOCADR[documentation-guild/adr-manager]
-  DOCADR --> DOCAPI[documentation-guild/api-spec-owner]
-  DOCAPI --> DOCTW[documentation-guild/tech-writer]
-  QA2 --> DOCTW
-  DOCTW --> COORD
-
-  TASK --> RND{research_track_enabled?}
-  RND -- yes --> TREND[innovation-research-guild/trend-researcher]
-  TREND --> POC[innovation-research-guild/poc-agent]
-  POC --> DOCADR
-
-  COORD --> INDEX[_index.yaml (coordinator only)]
-  COORD --> RG[_role-gap-index.yaml (coordinator only)]
+```text
+.
+├─ .takt/
+│  ├─ config.yaml
+│  ├─ pieces/
+│  │  └─ agentteams-governance.yaml
+│  ├─ personas/
+│  ├─ policies/
+│  ├─ knowledge/
+│  ├─ output-contracts/
+│  ├─ instructions/
+│  ├─ tasks/
+│  │  └─ TASK-*.yaml
+│  └─ logs/
+├─ scripts/
+│  ├─ at.py
+│  ├─ audit-takt-governance.py
+│  ├─ validate-takt-task.py
+│  └─ validate-takt-evidence.py
+└─ legacy/
+   └─ codex-states/
 ```
 
-## State Topology
-- 全体一覧: `.codex/states/_index.yaml`
-- task 詳細: `.codex/states/TASK-*.yaml`
-- ロール不足管理: `.codex/states/_role-gap-index.yaml`
-- 警告管理: `warnings[]`
-- ルーティング: `target_stack.*`
-- ゲート制御: `local_flags.*`
+## Execution Flow
 
-## Key Gates
-- `Documentation Sync Gate`: `local_flags.documentation_sync_required`
-- `QA Gate`: `local_flags.qa_review_required`
-- `Backend Security Gate`: `local_flags.backend_security_required`
-- `UX Gate`: `local_flags.ux_review_required`
-- `Research Gate`: `local_flags.research_track_enabled`
-- `Protocol Gate`: `warnings.status=open`
-- `Secret Scan Gate`: `validate-secrets` 最新成功必須
-- `Role Gap Review Gate`: `validate-role-gap-review` 成功必須
+1. `agentteams orchestrate --task-file .takt/tasks/TASK-*.yaml`
+2. `at.py` compiles task payload into TAKT prompt input.
+3. TAKT executes `.takt/pieces/agentteams-governance.yaml`.
+4. Post validation runs:
+   - `validate-takt-task.py`
+   - `validate-takt-evidence.py`
+5. Governance audit is available through `agentteams audit`.
 
-## Notes
-- API仕様の正本は `docs/api/openapi.yaml`。
-- 通信規約の正本は `docs/guides/communication-protocol.md`。
-- `_index.yaml` と `_role-gap-index.yaml` の更新者は coordinator のみ。
+## Governance Distribution Model
 
+Required team coverage is derived from task flags:
+
+- `qa_required` -> `qa-review-guild`
+- `security_required` -> `backend`
+- `ux_required` -> `frontend`
+- `docs_required` -> `documentation-guild`
+- `research_required` -> `innovation-research-guild`
+
+Audit checks required coverage and minimum distribution count.
+
+## CI Contract
+
+Required jobs:
+
+- `validate-takt-task-linux`
+- `validate-takt-task-windows`
+- `validate-takt-evidence-linux`
+- `orchestrate-smoke-mock`
+- `validate-doc-consistency`
+- `validate-secrets-linux`

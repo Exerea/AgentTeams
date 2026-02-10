@@ -1,0 +1,40 @@
+id: T-00140
+title: 最終コードレビュー
+status: todo
+task: 'Title: 最終コードレビュー
+
+
+  Execution instruction:
+
+  ドキュメント同期完了後に着手。
+
+
+  Required review flags:
+
+  - qa_required: true
+
+  - security_required: false
+
+  - ux_required: false
+
+  - docs_required: true
+
+  - research_required: false'
+goal: ''
+constraints: []
+acceptance: []
+flags:
+  qa_required: true
+  security_required: false
+  ux_required: false
+  docs_required: true
+  research_required: false
+warnings: []
+handoffs:
+- from: documentation-guild/tech-writer
+  to: qa-review-guild/code-critic
+  at: 2026-02-07 03:15:00+00:00
+  memo: DECLARATION team=documentation-guild role=tech-writer task=T-140 action=handoff_to_code_critic
+    | ドキュメント同期完了後に最終確認を依頼。
+notes: ドキュメント同期完了後に着手。
+updated_at: '2026-02-07T03:15:00Z'

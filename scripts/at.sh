@@ -18,6 +18,6 @@ if command -v python >/dev/null 2>&1; then
 fi
 
 echo "ERROR [PATH_LAYOUT_INVALID] python runtime not found (python3 or python required)."
-echo "Next: Install python, then retry: agentteams init <git-url>"
-echo "Compat: ./at init <git-url>"
+echo "Next: Install python, then retry: agentteams doctor"
+echo "Compat: ./at doctor"
 exit 1

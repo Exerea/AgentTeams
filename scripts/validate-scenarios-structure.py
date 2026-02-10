@@ -2,63 +2,49 @@
 from __future__ import annotations
 
 from pathlib import Path
-import re
 import sys
 
-
-SCENARIO_HEADING = re.compile(r"^## Scenario \d+:")
-REQUIRED_SUBHEADINGS = [
-    "### User Request",
-    "### Coordinator Decomposition",
-    "### Task File Blueprint",
-    "### Handoff Timeline",
-    "### Gate Checks",
-    "### Completion Criteria",
-    "### Validation Commands",
+REQUIRED_HEADINGS = [
+    "## Scenario 1",
+    "## Scenario 2",
+    "## Scenario 3",
+    "## Scenario 4",
 ]
 
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8").lstrip("\ufeff")
+REQUIRED_TOKENS = [
+    "agentteams orchestrate",
+    ".takt/tasks/",
+    "qa_required",
+    "security_required",
+    "docs_required",
+]
 
 
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
-    scenario_path = repo_root / "docs" / "guides" / "request-routing-scenarios.md"
+    target = repo_root / "docs" / "guides" / "request-routing-scenarios.md"
 
-    if not scenario_path.exists():
-        print(f"ERROR: missing file: {scenario_path.as_posix()}", file=sys.stderr)
+    if not target.exists():
+        print(f"ERROR [SCENARIO_DOC_MISSING] {target.as_posix()}")
         return 1
 
-    text = read_text(scenario_path)
-    lines = text.splitlines()
+    content = target.read_text(encoding="utf-8")
 
     errors: list[str] = []
+    for heading in REQUIRED_HEADINGS:
+        if heading not in content:
+            errors.append(f"missing heading: {heading}")
 
-    if "task_file_path" not in text:
-        errors.append(f"{scenario_path.as_posix()} must include task_file_path rule")
-    if "_index.yaml" not in text:
-        errors.append(f"{scenario_path.as_posix()} must include _index.yaml ownership rule")
-
-    indices = [idx for idx, line in enumerate(lines) if SCENARIO_HEADING.match(line)]
-    if len(indices) != 6:
-        errors.append(
-            f"{scenario_path.as_posix()} must include exactly 6 scenarios (found {len(indices)})"
-        )
-
-    for i, start in enumerate(indices, 1):
-        end = indices[i] if i < len(indices) else len(lines)
-        block = "\n".join(lines[start:end])
-        for heading in REQUIRED_SUBHEADINGS:
-            if heading not in block:
-                errors.append(f"Scenario {i} missing section: {heading}")
+    for token in REQUIRED_TOKENS:
+        if token not in content:
+            errors.append(f"missing token: {token}")
 
     if errors:
         for err in errors:
-            print(f"ERROR: {err}", file=sys.stderr)
+            print(f"ERROR [SCENARIO_STRUCTURE_INVALID] {err}")
         return 1
 
-    print("request routing scenarios structure is valid")
+    print("OK [SCENARIO_STRUCTURE_VALID]")
     return 0
 
 

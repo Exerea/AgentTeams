@@ -7,11 +7,7 @@ force=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --target)
-      if [[ $# -lt 2 ]]; then
-        echo "ERROR: --target requires a path value." >&2
-        echo "Usage: bootstrap-agent-teams.sh --target <path> [--force]" >&2
-        exit 1
-      fi
+      [[ $# -ge 2 ]] || { echo "ERROR: --target requires a path value." >&2; exit 1; }
       target="$2"
       shift 2
       ;;
@@ -29,7 +25,6 @@ done
 
 if [[ -z "$target" ]]; then
   echo "ERROR: Missing required argument: --target <path>" >&2
-  echo "Usage: bootstrap-agent-teams.sh --target <path> [--force]" >&2
   exit 1
 fi
 
@@ -37,11 +32,6 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 template_root="$(cd "$script_dir/.." && pwd)"
 mkdir -p "$target"
 target_root="$(cd "$target" && pwd)"
-
-if [[ "$target_root" == "$template_root" ]]; then
-  echo "ERROR: Target path must be different from template root." >&2
-  exit 1
-fi
 
 paths_to_copy=(
   "at"
@@ -54,7 +44,7 @@ paths_to_copy=(
   "README.md"
   ".gitleaks.toml"
   ".github"
-  ".codex"
+  ".takt"
   "docs"
   "shared"
   "scripts"
@@ -71,6 +61,12 @@ copy_entry() {
   source_name="$(basename "$source_path")"
 
   if [[ "$source_name" == "__pycache__" || "$source_name" == *.pyc ]]; then
+    return
+  fi
+
+  local parent
+  parent="$(basename "$(dirname "$source_path")")"
+  if [[ "$parent" == ".takt" && ("$source_name" == "logs" || "$source_name" == "reports") ]]; then
     return
   fi
 

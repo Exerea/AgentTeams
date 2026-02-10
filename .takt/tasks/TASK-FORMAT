@@ -1,0 +1,18 @@
+TAKT Task File Format
+=====================
+
+This repository uses custom governance tasks under `.takt/tasks/`.
+
+Required fields:
+- id
+- title
+- status (todo|in_progress|in_review|blocked|done)
+- task
+- goal
+- constraints
+- acceptance
+- flags
+- warnings
+- handoffs
+- notes
+- updated_at
