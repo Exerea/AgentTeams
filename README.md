@@ -86,13 +86,7 @@ task: |
 goal: ""
 constraints: []
 acceptance: []
-flags: # legacy-compatible until 2026-06-30
-  qa_required: true
-  security_required: false
-  ux_required: false
-  docs_required: true
-  research_required: false
-routing: # canonical for v5+
+routing:
   required_teams:
     - coordinator
     - documentation-guild
@@ -161,10 +155,10 @@ Approval policy:
 - QA approval is mandatory before overall leader approval.
 - Any rejection must route back to execute with explicit rework declaration evidence.
 
-Compatibility policy:
+Schema policy:
 
-- `flags` only: allowed until 2026-06-30
-- from 2026-07-01: tasks must define `routing`
+- tasks must define `routing.required_teams` and `routing.capability_tags`
+- legacy review fields are unsupported
 
 ## Control Plane Operation
 

@@ -104,7 +104,7 @@ teams:
   - .takt/policies/quality.md
   skill_refs:
   - skill-payments-api-security-review-api-docs
-  active: false
+  active: true
   source_refresh_id: R-20260210T040832Z
 - team_id: team-storefront-web-docs-sync-ux-review
   mission: specialized team carved out from overload candidate storefront-web
@@ -120,5 +120,5 @@ teams:
   - .takt/policies/quality.md
   skill_refs:
   - skill-storefront-web-docs-sync-ux-review
-  active: false
+  active: true
   source_refresh_id: R-20260210T041108Z

@@ -7,13 +7,14 @@ This guide defines canonical routing for AgentTeams v5 under TAKT-only runtime.
 - Task file exists under `.takt/tasks/`.
 - Task schema is valid, including `declarations`, `handoffs`, and `routing`.
 - Task schema includes `approvals` with strict gate order.
-- Legacy flags (`qa_required`, `security_required`, `docs_required`) are allowed during compatibility period.
+- Routing must define `routing.required_teams` and `routing.capability_tags`.
 
 ## Declaration Contract (Who Does What)
 
 - `declarations` is the canonical declaration log of role intent.
 - Each declaration must record `at`, `team`, `role`, `action`, `what`, `controlled_by`.
 - `approvals` is the canonical gate log and must follow:
+  - team leaders -> QA -> overall leader
   - required team leaders
   - QA
   - overall leader
@@ -52,7 +53,7 @@ Use:
 
 ## Scenario 1: Standard Feature Delivery
 
-When: `qa_required=true`, `docs_required=true`.
+When: task tags include `qa-review` and `docs-sync`.
 
 Flow:
 
@@ -71,12 +72,12 @@ Expected routing:
 
 ## Scenario 2: Security-Sensitive Backend Change
 
-When: backend task where `security_required=true`.
+When: backend task where `capability_tags` include `security-review`.
 
 Flow:
 
-1. Ensure compatibility flags include `security_required: true`.
-2. Ensure `routing.required_teams` includes `backend`.
+1. Ensure `routing.required_teams` includes `backend`.
+2. Ensure `routing.capability_tags` include `security-review`.
 3. Run `agentteams orchestrate --task-file .takt/tasks/TASK-xxxxx-security.yaml`.
 4. Verify evidence:
    - `rule:security-required`
@@ -91,12 +92,12 @@ Expected routing:
 
 ## Scenario 3: UX-Heavy Frontend Change
 
-When: frontend experience task where `ux_required=true`.
+When: frontend experience task where `capability_tags` include `ux-review`.
 
 Flow:
 
-1. Ensure compatibility flags include `ux_required: true`.
-2. Ensure `routing.required_teams` includes `frontend`.
+1. Ensure `routing.required_teams` includes `frontend`.
+2. Ensure `routing.capability_tags` include `ux-review`.
 3. Run `agentteams orchestrate --task-file .takt/tasks/TASK-xxxxx-ux.yaml`.
 4. Run local/fleet audit and check overload warnings.
 
@@ -109,12 +110,12 @@ Expected routing:
 
 ## Scenario 4: Research-Driven Discovery Task
 
-When: exploratory task where `research_required=true`.
+When: exploratory task where `capability_tags` include `research`.
 
 Flow:
 
-1. Ensure compatibility flags include `research_required: true`.
-2. Ensure `routing.required_teams` includes `innovation-research-guild`.
+1. Ensure `routing.required_teams` includes `innovation-research-guild`.
+2. Ensure `routing.capability_tags` include `research`.
 3. Run `agentteams orchestrate --task-file .takt/tasks/TASK-xxxxx-research.yaml`.
 4. Validate task/evidence:
    - `python scripts/validate-takt-task.py --file .takt/tasks/TASK-xxxxx-research.yaml`

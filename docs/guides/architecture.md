@@ -85,8 +85,7 @@ AgentTeams v5 is a TAKT-first orchestration architecture with:
 
 Required team coverage resolves in this order:
 
-1. `routing.required_teams` (v5 canonical)
-2. `flags` mapping (legacy compatibility until 2026-06-30)
+1. `routing.required_teams` (canonical)
 
 Evidence coverage in review/done phases must include:
 

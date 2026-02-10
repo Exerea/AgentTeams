@@ -370,29 +370,6 @@ def load_yaml_map(path: Path) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def teams_from_flags(flags: object) -> list[str]:
-    required = ["coordinator"]
-    if not isinstance(flags, dict):
-        return required
-    if bool(flags.get("qa_required", False)):
-        required.append("qa-review-guild")
-    if bool(flags.get("security_required", False)):
-        required.append("backend")
-    if bool(flags.get("ux_required", False)):
-        required.append("frontend")
-    if bool(flags.get("docs_required", False)):
-        required.append("documentation-guild")
-    if bool(flags.get("research_required", False)):
-        required.append("innovation-research-guild")
-    seen: set[str] = set()
-    ordered: list[str] = []
-    for team in required:
-        if team and team not in seen:
-            seen.add(team)
-            ordered.append(team)
-    return ordered
-
-
 def resolve_required_teams(task: dict) -> list[str]:
     routing = task.get("routing")
     if isinstance(routing, dict):
@@ -407,7 +384,7 @@ def resolve_required_teams(task: dict) -> list[str]:
                     normalized.append(team)
             if normalized:
                 return normalized
-    return teams_from_flags(task.get("flags"))
+    return []
 
 
 def resolve_capability_tags(task: dict) -> list[str]:
@@ -498,7 +475,6 @@ def compile_orchestration_prompt(task_file: Path, task: dict, repo_root: Path) -
                 out.append(item)
         return out
 
-    flags = task.get("flags") if isinstance(task.get("flags"), dict) else {}
     required_teams = resolve_required_teams(task)
     capability_tags = resolve_capability_tags(task)
     active_team_descriptions = resolve_active_team_descriptions(repo_root, required_teams)
@@ -530,18 +506,6 @@ def compile_orchestration_prompt(task_file: Path, task: dict, repo_root: Path) -
         lines.extend([f"- {item}" for item in acceptance])
     else:
         lines.append("- (none)")
-
-    lines.append("")
-    lines.append("Flags:")
-    for key in [
-        "qa_required",
-        "security_required",
-        "ux_required",
-        "docs_required",
-        "research_required",
-    ]:
-        value = bool(flags.get(key, False)) if isinstance(flags, dict) else False
-        lines.append(f"- {key}: {str(value).lower()}")
 
     lines.append("")
     lines.append("Routing:")
@@ -771,6 +735,15 @@ def orchestrate(task_file: str, provider: str, no_post_validate: bool, verbose: 
     status = str(raw.get("status", ""))
     if status not in TASK_STATUSES:
         return fail("TAKT_TASK_INVALID", f"invalid status in task file: {status}")
+
+    required_teams = resolve_required_teams(raw)
+    capability_tags = resolve_capability_tags(raw)
+    if not required_teams or not capability_tags:
+        return fail(
+            "TAKT_TASK_INVALID",
+            f"routing is required in task file: {task_path.as_posix()}",
+            "Define routing.required_teams and routing.capability_tags",
+        )
 
     compiled_prompt = compile_orchestration_prompt(task_path, raw, repo_root)
 

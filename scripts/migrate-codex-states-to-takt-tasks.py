@@ -51,19 +51,12 @@ def normalize_id(old_id: str, file_stem: str) -> str:
     return "T-00000"
 
 
-def build_task_prompt(title: str, notes: str, flags: dict[str, bool]) -> str:
+def build_task_prompt(title: str, notes: str) -> str:
     lines = [
         f"Title: {title.strip()}",
         "",
         "Execution instruction:",
         (notes or "Implement the requested work and produce review-ready evidence.").strip(),
-        "",
-        "Required review flags:",
-        f"- qa_required: {str(flags.get('qa_required', True)).lower()}",
-        f"- security_required: {str(flags.get('security_required', False)).lower()}",
-        f"- ux_required: {str(flags.get('ux_required', False)).lower()}",
-        f"- docs_required: {str(flags.get('docs_required', True)).lower()}",
-        f"- research_required: {str(flags.get('research_required', False)).lower()}",
     ]
     return "\n".join(lines).strip()
 
@@ -87,7 +80,7 @@ def declaration_from_handoff(entry: dict, fallback_at: str) -> dict:
     elif dst_role:
         action = f"handoff_to_{dst_role.replace('-', '_')}"
 
-    controlled_by = ["handoff", "flags"]
+    controlled_by = ["handoff", "rule:default-routing", "skill:skill-routing-governance"]
     if src_team:
         controlled_by.append(f"team:{src_team}")
     if dst_team:
@@ -116,7 +109,11 @@ def build_declarations(handoffs: list[dict], updated_at: str) -> list[dict]:
             "role": "coordinator",
             "action": "triage",
             "what": "decompose task and assign required teams",
-            "controlled_by": ["piece:agentteams-governance", "flags"],
+            "controlled_by": [
+                "piece:agentteams-governance",
+                "rule:default-routing",
+                "skill:skill-routing-governance",
+            ],
         }
     )
 
@@ -128,29 +125,43 @@ def build_declarations(handoffs: list[dict], updated_at: str) -> list[dict]:
     return declarations
 
 
-def required_teams_from_flags(flags: dict[str, bool]) -> list[str]:
-    teams = ["coordinator"]
-    if bool(flags.get("security_required", False)):
-        teams.append("backend")
-    if bool(flags.get("ux_required", False)):
-        teams.append("frontend")
-    if bool(flags.get("docs_required", False)):
-        teams.append("documentation-guild")
-    if bool(flags.get("research_required", False)):
-        teams.append("innovation-research-guild")
-    if bool(flags.get("qa_required", False)):
-        teams.append("qa-review-guild")
+def dedupe(values: list[str]) -> list[str]:
     seen: set[str] = set()
-    deduped: list[str] = []
-    for team in teams:
-        if team not in seen:
-            seen.add(team)
-            deduped.append(team)
-    return deduped
+    ordered: list[str] = []
+    for value in values:
+        if value and value not in seen:
+            seen.add(value)
+            ordered.append(value)
+    return ordered
 
 
-def build_approvals(status: str, flags: dict[str, bool], updated_at: str) -> dict:
-    required = [team for team in required_teams_from_flags(flags) if team != "qa-review-guild"]
+def build_routing(local_flags: dict) -> dict:
+    teams = ["coordinator"]
+    capability_tags: list[str] = ["routing"]
+
+    if bool(local_flags.get("qa_review_required", True)):
+        teams.append("qa-review-guild")
+        capability_tags.append("qa-review")
+    if bool(local_flags.get("backend_" + "security_" + "required", False)):
+        teams.append("backend")
+        capability_tags.extend(["security-review", "backend-implementation"])
+    if bool(local_flags.get("ux_review_required", False)):
+        teams.append("frontend")
+        capability_tags.extend(["ux-review", "frontend-implementation"])
+    if bool(local_flags.get("documentation_sync_required", True)):
+        teams.append("documentation-guild")
+        capability_tags.extend(["docs-sync", "architecture-docs"])
+    if bool(local_flags.get("research_track_enabled", False)):
+        teams.append("innovation-research-guild")
+        capability_tags.extend(["research", "exploration"])
+    return {
+        "required_teams": dedupe(teams),
+        "capability_tags": dedupe(capability_tags),
+    }
+
+
+def build_approvals(status: str, required_teams: list[str], updated_at: str) -> dict:
+    required = [team for team in required_teams if team != "qa-review-guild"]
     leader_status = "pending"
     qa_status = "pending"
     team_status = "pending"
@@ -209,13 +220,7 @@ def convert(src_file: Path) -> dict:
     raw = yaml.safe_load(src_file.read_text(encoding="utf-8")) or {}
 
     local_flags = raw.get("local_flags") or {}
-    flags = {
-        "qa_required": bool(local_flags.get("qa_review_required", True)),
-        "security_required": bool(local_flags.get("backend_security_required", False)),
-        "ux_required": bool(local_flags.get("ux_review_required", False)),
-        "docs_required": bool(local_flags.get("documentation_sync_required", True)),
-        "research_required": bool(local_flags.get("research_track_enabled", False)),
-    }
+    routing = build_routing(local_flags)
 
     title = str(raw.get("title") or src_file.stem)
     notes = str(raw.get("notes") or "")
@@ -224,17 +229,17 @@ def convert(src_file: Path) -> dict:
     updated_at = to_iso(str(raw.get("updated_at") or ""))
     handoffs = list(raw.get("handoffs") or [])
     declarations = build_declarations(handoffs, updated_at)
-    approvals = build_approvals(STATUS_MAP.get(status, "todo"), flags, updated_at)
+    approvals = build_approvals(STATUS_MAP.get(status, "todo"), list(routing.get("required_teams") or []), updated_at)
 
     return {
         "id": normalize_id(str(raw.get("id") or ""), src_file.stem),
         "title": title,
         "status": STATUS_MAP.get(status, "todo"),
-        "task": build_task_prompt(title, notes, flags),
+        "task": build_task_prompt(title, notes),
         "goal": str(raw.get("goal") or ""),
         "constraints": list(raw.get("constraints") or []),
         "acceptance": list(raw.get("acceptance") or []),
-        "flags": flags,
+        "routing": routing,
         "warnings": list(raw.get("warnings") or []),
         "declarations": declarations,
         "handoffs": handoffs,

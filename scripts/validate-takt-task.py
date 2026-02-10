@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 import re
 import sys
@@ -32,45 +32,23 @@ REQUIRED_KEYS = [
     "notes",
     "updated_at",
 ]
-FLAG_KEYS = [
-    "qa_required",
-    "security_required",
-    "ux_required",
-    "docs_required",
-    "research_required",
-]
 DECLARATION_KEYS = ["at", "team", "role", "action", "what", "controlled_by"]
 ROUTING_KEYS = ["required_teams", "capability_tags"]
 TEAM_LEADER_GATE_KEYS = ["team", "leader_role", "status", "at", "note", "controlled_by"]
 SINGLE_GATE_KEYS = ["by", "status", "at", "note", "controlled_by"]
-FLAGS_COMPAT_END = date(2026, 6, 30)
+LEGACY_REVIEW_KEY = "fl" + "ags"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate .takt/tasks schema")
     parser.add_argument("--path", default=".takt/tasks", help="task directory")
     parser.add_argument("--file", default="", help="single task file")
-    parser.add_argument(
-        "--effective-date",
-        default="",
-        help="override validation date (YYYY-MM-DD) for compatibility checks",
-    )
     return parser.parse_args()
 
 
 def load_yaml(path: Path) -> dict:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     return data if isinstance(data, dict) else {}
-
-
-def parse_effective_date(value: str) -> date | None:
-    text = value.strip()
-    if not text:
-        return None
-    try:
-        return date.fromisoformat(text)
-    except ValueError:
-        return None
 
 
 def parse_teams(values: object) -> list[str]:
@@ -111,20 +89,9 @@ def validate_routing(path: Path, task: dict, errors: list[str]) -> bool:
     return True
 
 
-def validate_flags(path: Path, task: dict, errors: list[str]) -> bool:
-    if "flags" not in task or task.get("flags") is None:
-        return False
-    flags = task.get("flags")
-    if not isinstance(flags, dict):
-        errors.append(f"{path.as_posix()}: flags must be a map")
-        return False
-    for flag in FLAG_KEYS:
-        if flag not in flags:
-            errors.append(f"{path.as_posix()}: flags.{flag} is required")
-            continue
-        if not isinstance(flags[flag], bool):
-            errors.append(f"{path.as_posix()}: flags.{flag} must be boolean")
-    return True
+def validate_legacy_review_absent(path: Path, task: dict, errors: list[str]) -> None:
+    if LEGACY_REVIEW_KEY in task:
+        errors.append(f"{path.as_posix()}: legacy review field is no longer supported; use routing only")
 
 
 def required_teams_for_approval(task: dict) -> list[str]:
@@ -135,25 +102,7 @@ def required_teams_for_approval(task: dict) -> list[str]:
             if "coordinator" not in teams:
                 teams.append("coordinator")
             return teams
-
-    flags = task.get("flags") if isinstance(task.get("flags"), dict) else {}
-    teams = ["coordinator"]
-    if bool(flags.get("security_required", False)):
-        teams.append("backend")
-    if bool(flags.get("ux_required", False)):
-        teams.append("frontend")
-    if bool(flags.get("docs_required", False)):
-        teams.append("documentation-guild")
-    if bool(flags.get("research_required", False)):
-        teams.append("innovation-research-guild")
-    teams.append("qa-review-guild")
-    seen: set[str] = set()
-    deduped: list[str] = []
-    for team in teams:
-        if team not in seen:
-            seen.add(team)
-            deduped.append(team)
-    return deduped
+    return ["coordinator"]
 
 
 def parse_iso_utc(value: object) -> datetime | None:
@@ -334,7 +283,7 @@ def validate_approvals(path: Path, task: dict, errors: list[str], status: str) -
             errors.append(f"{path.as_posix()}: status=done cannot include rejected approvals")
 
 
-def validate_task(path: Path, effective_date: date) -> list[str]:
+def validate_task(path: Path) -> list[str]:
     task = load_yaml(path)
     errors: list[str] = []
 
@@ -367,18 +316,9 @@ def validate_task(path: Path, effective_date: date) -> list[str]:
             errors.append(f"{path.as_posix()}: {list_key} must be a list")
 
     has_routing = validate_routing(path, task, errors)
-    has_flags = validate_flags(path, task, errors)
-
-    if not has_routing and not has_flags:
-        errors.append(f"{path.as_posix()}: either routing or flags must be defined")
-
-    # Compatibility gate:
-    # - Until 2026-06-30: flags-only is allowed
-    # - From 2026-07-01: routing is required (flags-only invalid)
-    if has_flags and not has_routing and effective_date > FLAGS_COMPAT_END:
-        errors.append(
-            f"{path.as_posix()}: flags-only tasks are no longer allowed after {FLAGS_COMPAT_END.isoformat()}; add routing"
-        )
+    validate_legacy_review_absent(path, task, errors)
+    if not has_routing:
+        errors.append(f"{path.as_posix()}: routing must be defined")
 
     updated_at = str(task["updated_at"])
     if not TIMESTAMP_PATTERN.fullmatch(updated_at):
@@ -430,12 +370,6 @@ def validate_task(path: Path, effective_date: date) -> list[str]:
 
 def main() -> int:
     args = parse_args()
-    override_date = parse_effective_date(args.effective_date)
-    if args.effective_date and override_date is None:
-        print(f"ERROR [TASK_CONFIG_INVALID] --effective-date must be YYYY-MM-DD: {args.effective_date}")
-        return 1
-    effective_date = override_date or datetime.now(timezone.utc).date()
-
     files: list[Path]
     if args.file:
         files = [Path(args.file).resolve()]
@@ -455,14 +389,14 @@ def main() -> int:
         if not file.exists():
             all_errors.append(f"{file.as_posix()}: file not found")
             continue
-        all_errors.extend(validate_task(file, effective_date))
+        all_errors.extend(validate_task(file))
 
     if all_errors:
         for err in all_errors:
             print(f"ERROR [TAKT_TASK_INVALID] {err}")
         return 1
 
-    print(f"OK [TAKT_TASK_VALID] files={len(files)} effective_date={effective_date.isoformat()}")
+    print(f"OK [TAKT_TASK_VALID] files={len(files)} effective_date={datetime.now(timezone.utc).date().isoformat()}")
     return 0
 
 

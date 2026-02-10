@@ -13,11 +13,6 @@ queue_p95_hours: 30.0
 rework_rate: 0.31
 blocked_ratio: 0.22
 incident_fingerprints:
-  - hash: fp-001
-    error_class: qa_rework
-    failing_step: qa_review
-    policy: quality
-    rule_id: default-routing
   - hash: fp-002
     error_class: security_missing_review
     failing_step: leader_gate

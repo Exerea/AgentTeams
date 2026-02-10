@@ -14,10 +14,10 @@ REQUIRED_HEADINGS = [
 REQUIRED_TOKENS = [
     "agentteams orchestrate",
     ".takt/tasks/",
-    "qa_required",
-    "security_required",
-    "docs_required",
-    "routing",
+    "routing.required_teams",
+    "capability_tags",
+    "qa-review-guild",
+    "team leaders -> QA -> overall leader",
 ]
 
 

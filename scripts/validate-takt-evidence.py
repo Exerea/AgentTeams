@@ -58,23 +58,6 @@ def parse_iso_utc(value: object) -> datetime | None:
         return None
 
 
-def required_teams_from_flags(flags: object) -> set[str]:
-    required = {"coordinator"}
-    if not isinstance(flags, dict):
-        return required
-    if bool(flags.get("qa_required", False)):
-        required.add("qa-review-guild")
-    if bool(flags.get("security_required", False)):
-        required.add("backend")
-    if bool(flags.get("ux_required", False)):
-        required.add("frontend")
-    if bool(flags.get("docs_required", False)):
-        required.add("documentation-guild")
-    if bool(flags.get("research_required", False)):
-        required.add("innovation-research-guild")
-    return required
-
-
 def required_teams(task: dict) -> set[str]:
     routing = task.get("routing")
     if isinstance(routing, dict) and isinstance(routing.get("required_teams"), list):
@@ -82,7 +65,7 @@ def required_teams(task: dict) -> set[str]:
         if teams:
             teams.add("coordinator")
             return teams
-    return required_teams_from_flags(task.get("flags"))
+    return {"coordinator"}
 
 
 def capability_tags(task: dict) -> set[str]:
@@ -276,19 +259,11 @@ def approval_chain_errors(task_file: Path, task: dict, status: str) -> list[str]
 def rule_matches_task(rule: dict, task: dict) -> bool:
     when = rule.get("when") if isinstance(rule.get("when"), dict) else {}
     status = str(task.get("status") or "")
-    flags = task.get("flags") if isinstance(task.get("flags"), dict) else {}
     tags = capability_tags(task)
 
     if isinstance(when.get("any_status"), list):
         statuses = {str(v).strip() for v in when.get("any_status") if str(v).strip()}
         if statuses and status not in statuses:
-            return False
-
-    flag_clause = when.get("flag")
-    if isinstance(flag_clause, dict):
-        key = str(flag_clause.get("key") or "").strip()
-        expected = flag_clause.get("equals")
-        if key and bool(flags.get(key, False)) != bool(expected):
             return False
 
     trigger_tags = when.get("capability_tags")

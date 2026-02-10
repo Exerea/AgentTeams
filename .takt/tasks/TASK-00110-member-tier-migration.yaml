@@ -6,29 +6,10 @@ task: 'Title: 会員ランクテーブル追加とマイグレーション実装
 
   Execution instruction:
 
-  ADR gate 条件を満たしたため実装着手。Security先行レビュー後、ロールバック手順を含めてレビュー待ち。
-
-
-  Required review flags:
-
-  - qa_required: true
-
-  - security_required: true
-
-  - ux_required: false
-
-  - docs_required: true
-
-  - research_required: false'
+  ADR gate 条件を満たしたため実装着手。Security先行レビュー後、ロールバック手順を含めてレビュー待ち。'
 goal: ''
 constraints: []
 acceptance: []
-flags:
-  qa_required: true
-  security_required: true
-  ux_required: false
-  docs_required: true
-  research_required: false
 routing:
   required_teams:
   - coordinator
@@ -46,52 +27,51 @@ declarations:
   team: coordinator
   role: coordinator
   action: triage
-  what: assign backend and documentation reviewers based on flags
+  what: assign backend and documentation reviewers based on routing
   controlled_by:
-  - "piece:agentteams-governance"
-  - "flags"
-  - "rule:default-routing"
-  - "skill:skill-routing-governance"
+  - piece:agentteams-governance
+  - rule:default-routing
+  - skill:skill-routing-governance
 - at: '2026-02-07T02:20:00Z'
   team: documentation-guild
   role: adr-manager
   action: handoff_to_db_specialist
   what: handoff to backend/db-specialist after ADR approval
   controlled_by:
-  - "handoff"
-  - "policy:handoff"
-  - "rule:docs-required"
-  - "skill:skill-docs-synchronization"
+  - handoff
+  - policy:handoff
+  - rule:docs-required
+  - skill:skill-docs-synchronization
 - at: '2026-02-07T02:40:00Z'
   team: backend
   role: db-specialist
   action: handoff_to_backend_security
   what: backend migration implementation sent to security reviewer
   controlled_by:
-  - "handoff"
-  - "policy:security-review"
-  - "rule:security-required"
-  - "skill:skill-backend-security-review"
+  - handoff
+  - policy:security-review
+  - rule:security-required
+  - skill:skill-backend-security-review
 - at: '2026-02-07T02:45:00Z'
   team: backend
   role: security-expert
   action: handoff_to_api_spec_owner
   what: security review complete and handed to api spec owner
   controlled_by:
-  - "handoff"
-  - "policy:security-review"
-  - "rule:security-required"
-  - "skill:skill-backend-security-review"
+  - handoff
+  - policy:security-review
+  - rule:security-required
+  - skill:skill-backend-security-review
 - at: '2026-02-07T02:50:00Z'
   team: documentation-guild
   role: api-spec-owner
   action: handoff_to_code_critic
   what: OpenAPI sync complete and sent to QA review
   controlled_by:
-  - "handoff"
-  - "policy:qa-review"
-  - "rule:qa-required"
-  - "skill:skill-qa-regression-trace"
+  - handoff
+  - policy:qa-review
+  - rule:qa-required
+  - skill:skill-qa-regression-trace
 handoffs:
 - from: documentation-guild/adr-manager
   to: backend/db-specialist
@@ -122,43 +102,43 @@ approvals:
     at: '2026-02-07T02:51:00Z'
     note: coordination approval complete
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:team-leader-approval-required"
-    - "skill:skill-team-leader-gate"
+    - piece:agentteams-governance
+    - rule:team-leader-approval-required
+    - skill:skill-team-leader-gate
   - team: backend
     leader_role: team-lead
     status: approved
     at: '2026-02-07T02:52:00Z'
     note: backend security implementation approved
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:team-leader-approval-required"
-    - "skill:skill-team-leader-gate"
+    - piece:agentteams-governance
+    - rule:team-leader-approval-required
+    - skill:skill-team-leader-gate
   - team: documentation-guild
     leader_role: team-lead
     status: approved
     at: '2026-02-07T02:53:00Z'
     note: api docs synchronization approved
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:team-leader-approval-required"
-    - "skill:skill-team-leader-gate"
+    - piece:agentteams-governance
+    - rule:team-leader-approval-required
+    - skill:skill-team-leader-gate
   qa_gate:
     by: qa-review-guild/lead-reviewer
     status: approved
     at: '2026-02-07T02:54:00Z'
     note: qa approved migration and regression checks
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:qa-required"
-    - "skill:skill-qa-regression-trace"
+    - piece:agentteams-governance
+    - rule:qa-required
+    - skill:skill-qa-regression-trace
   leader_gate:
     by: leader/overall-lead
     status: pending
     at: '2026-02-07T02:55:00Z'
     note: awaiting final release synchronization
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:default-routing"
-    - "skill:skill-routing-governance"
+    - piece:agentteams-governance
+    - rule:default-routing
+    - skill:skill-routing-governance
 updated_at: '2026-02-07T02:45:00Z'

@@ -11,7 +11,6 @@ Required fields:
 - goal
 - constraints
 - acceptance
-- flags (legacy-compatible until 2026-06-30)
 - routing (v5 canonical)
 - warnings
 - declarations

@@ -117,7 +117,7 @@ skills:
   - .takt/policies/quality.md
   evidence_requirements:
   - declarations controlled_by must include skill:skill-payments-api-security-review-api-docs
-  enabled: false
+  enabled: true
   source_refresh_id: R-20260210T040832Z
 - skill_id: skill-storefront-web-docs-sync-ux-review
   description: specialized execution skill for storefront-web overload split
@@ -133,5 +133,5 @@ skills:
   - .takt/policies/quality.md
   evidence_requirements:
   - declarations controlled_by must include skill:skill-storefront-web-docs-sync-ux-review
-  enabled: false
+  enabled: true
   source_refresh_id: R-20260210T041108Z

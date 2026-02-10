@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
+import json
 from pathlib import Path
 import re
 import sys
@@ -73,6 +75,24 @@ def append_unique_by_id(items: list[dict], id_key: str, candidate: dict) -> bool
     return True
 
 
+def canonicalize(value: object) -> object:
+    if isinstance(value, dict):
+        return {key: canonicalize(value[key]) for key in sorted(value)}
+    if isinstance(value, list):
+        normalized = [canonicalize(item) for item in value]
+        return sorted(
+            normalized,
+            key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+        )
+    return value
+
+
+def findings_signature(findings: dict) -> str:
+    canonical = canonicalize(findings)
+    payload = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def main() -> int:
     args = parse_args()
     cp_root = Path(args.control_plane).resolve()
@@ -88,6 +108,24 @@ def main() -> int:
 
     recurring = ensure_list_map(incidents_data, "recurring_incidents")
     split_candidates = ensure_list_map(overload_data, "split_candidates")
+    findings = {"incidents": recurring, "overload_candidates": split_candidates}
+    signature = findings_signature(findings)
+
+    for existing_queue in sorted((cp_root / "refresh-queue").glob("R-*.yaml")):
+        existing = load_yaml(existing_queue)
+        existing_findings = existing.get("findings") if isinstance(existing.get("findings"), dict) else {}
+        if not existing_findings:
+            continue
+        existing_signature = str(existing.get("findings_signature") or "").strip()
+        if not existing_signature:
+            existing_signature = findings_signature(existing_findings)
+        if existing_signature == signature:
+            existing_refresh_id = str(existing.get("refresh_id") or existing_queue.stem)
+            print(
+                "OK [REFRESH_PROPOSAL_SKIPPED_DUPLICATE] "
+                f"refresh_id={existing_refresh_id} findings_signature={signature}"
+            )
+            return 0
 
     stamp = now_stamp()
     refresh_id = f"R-{stamp}"
@@ -157,7 +195,8 @@ def main() -> int:
         "created_at": now_iso(),
         "source": "auto-detect",
         "status": "pending_review",
-        "findings": {"incidents": recurring, "overload_candidates": split_candidates},
+        "findings": findings,
+        "findings_signature": signature,
         "actions": {
             "team_catalog_updates": team_updates,
             "routing_rule_updates": rule_updates,

@@ -30,12 +30,6 @@ task: |
 goal: "Release with full review evidence"
 constraints: []
 acceptance: []
-flags:
-  qa_required: true
-  security_required: false
-  ux_required: false
-  docs_required: true
-  research_required: false
 routing:
   required_teams:
     - coordinator

@@ -6,29 +6,10 @@ task: 'Title: 会員ランク導入の ADR を作成
 
   Execution instruction:
 
-  採用案/却下案を比較し ADR を作成。PR summary を証跡として記録済み。
-
-
-  Required review flags:
-
-  - qa_required: false
-
-  - security_required: false
-
-  - ux_required: false
-
-  - docs_required: true
-
-  - research_required: false'
+  採用案/却下案を比較し ADR を作成。PR summary を証跡として記録済み。'
 goal: ''
 constraints: []
 acceptance: []
-flags:
-  qa_required: false
-  security_required: false
-  ux_required: false
-  docs_required: true
-  research_required: false
 routing:
   required_teams:
   - coordinator
@@ -44,20 +25,19 @@ declarations:
   action: triage
   what: initial routing and delegation for this task
   controlled_by:
-  - "piece:agentteams-governance"
-  - "flags"
-  - "rule:default-routing"
-  - "skill:skill-routing-governance"
+  - piece:agentteams-governance
+  - rule:default-routing
+  - skill:skill-routing-governance
 - at: '2026-02-07T02:20:00Z'
   team: documentation-guild
   role: adr-manager
   action: handoff_to_db_specialist
   what: handoff to backend/db-specialist after ADR gate
   controlled_by:
-  - "handoff"
-  - "policy:handoff"
-  - "rule:docs-required"
-  - "skill:skill-docs-synchronization"
+  - handoff
+  - policy:handoff
+  - rule:docs-required
+  - skill:skill-docs-synchronization
 handoffs:
 - from: coordinator
   to: documentation-guild/adr-manager
@@ -78,34 +58,34 @@ approvals:
     at: '2026-02-07T02:18:00Z'
     note: triage ownership approved
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:team-leader-approval-required"
-    - "skill:skill-team-leader-gate"
+    - piece:agentteams-governance
+    - rule:team-leader-approval-required
+    - skill:skill-team-leader-gate
   - team: documentation-guild
     leader_role: team-lead
     status: approved
     at: '2026-02-07T02:19:00Z'
     note: adr documentation ownership approved
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:team-leader-approval-required"
-    - "skill:skill-team-leader-gate"
+    - piece:agentteams-governance
+    - rule:team-leader-approval-required
+    - skill:skill-team-leader-gate
   qa_gate:
     by: qa-review-guild/lead-reviewer
     status: approved
     at: '2026-02-07T02:20:00Z'
     note: qa accepted adr evidence
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:qa-required"
-    - "skill:skill-qa-regression-trace"
+    - piece:agentteams-governance
+    - rule:qa-required
+    - skill:skill-qa-regression-trace
   leader_gate:
     by: leader/overall-lead
     status: approved
     at: '2026-02-07T02:21:00Z'
     note: final approval granted
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:default-routing"
-    - "skill:skill-routing-governance"
+    - piece:agentteams-governance
+    - rule:default-routing
+    - skill:skill-routing-governance
 updated_at: '2026-02-07T02:20:00Z'

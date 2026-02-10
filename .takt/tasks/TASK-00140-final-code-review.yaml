@@ -6,29 +6,10 @@ task: 'Title: 最終コードレビュー
 
   Execution instruction:
 
-  ドキュメント同期完了後に着手。
-
-
-  Required review flags:
-
-  - qa_required: true
-
-  - security_required: false
-
-  - ux_required: false
-
-  - docs_required: true
-
-  - research_required: false'
+  ドキュメント同期完了後に着手。'
 goal: ''
 constraints: []
 acceptance: []
-flags:
-  qa_required: true
-  security_required: false
-  ux_required: false
-  docs_required: true
-  research_required: false
 routing:
   required_teams:
   - coordinator
@@ -46,20 +27,19 @@ declarations:
   action: triage
   what: assign final QA and documentation reviewers
   controlled_by:
-  - "piece:agentteams-governance"
-  - "flags"
-  - "rule:default-routing"
-  - "skill:skill-routing-governance"
+  - piece:agentteams-governance
+  - rule:default-routing
+  - skill:skill-routing-governance
 - at: '2026-02-07T03:15:00Z'
   team: documentation-guild
   role: tech-writer
   action: handoff_to_code_critic
   what: documentation package sent to QA final review
   controlled_by:
-  - "handoff"
-  - "policy:qa-review"
-  - "rule:qa-required"
-  - "skill:skill-qa-regression-trace"
+  - handoff
+  - policy:qa-review
+  - rule:qa-required
+  - skill:skill-qa-regression-trace
 handoffs:
 - from: documentation-guild/tech-writer
   to: qa-review-guild/code-critic
@@ -75,34 +55,34 @@ approvals:
     at: '2026-02-07T03:16:00Z'
     note: pending execution start
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:team-leader-approval-required"
-    - "skill:skill-team-leader-gate"
+    - piece:agentteams-governance
+    - rule:team-leader-approval-required
+    - skill:skill-team-leader-gate
   - team: documentation-guild
     leader_role: team-lead
     status: pending
     at: '2026-02-07T03:17:00Z'
     note: pending implementation evidence
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:team-leader-approval-required"
-    - "skill:skill-team-leader-gate"
+    - piece:agentteams-governance
+    - rule:team-leader-approval-required
+    - skill:skill-team-leader-gate
   qa_gate:
     by: qa-review-guild/lead-reviewer
     status: pending
     at: '2026-02-07T03:18:00Z'
     note: pending team leader approvals
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:qa-required"
-    - "skill:skill-qa-regression-trace"
+    - piece:agentteams-governance
+    - rule:qa-required
+    - skill:skill-qa-regression-trace
   leader_gate:
     by: leader/overall-lead
     status: pending
     at: '2026-02-07T03:19:00Z'
     note: pending qa approval
     controlled_by:
-    - "piece:agentteams-governance"
-    - "rule:default-routing"
-    - "skill:skill-routing-governance"
+    - piece:agentteams-governance
+    - rule:default-routing
+    - skill:skill-routing-governance
 updated_at: '2026-02-07T03:15:00Z'
