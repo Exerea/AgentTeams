@@ -67,4 +67,42 @@ handoffs:
   memo: DECLARATION team=documentation-guild role=tech-writer task=T-140 action=handoff_to_code_critic
     | ドキュメント同期完了後に最終確認を依頼。
 notes: ドキュメント同期完了後に着手。
+approvals:
+  team_leader_gates:
+  - team: coordinator
+    leader_role: team-lead
+    status: pending
+    at: '2026-02-07T03:16:00Z'
+    note: pending execution start
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  - team: documentation-guild
+    leader_role: team-lead
+    status: pending
+    at: '2026-02-07T03:17:00Z'
+    note: pending implementation evidence
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  qa_gate:
+    by: qa-review-guild/lead-reviewer
+    status: pending
+    at: '2026-02-07T03:18:00Z'
+    note: pending team leader approvals
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:qa-required"
+    - "skill:skill-qa-regression-trace"
+  leader_gate:
+    by: leader/overall-lead
+    status: pending
+    at: '2026-02-07T03:19:00Z'
+    note: pending qa approval
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:default-routing"
+    - "skill:skill-routing-governance"
 updated_at: '2026-02-07T03:15:00Z'

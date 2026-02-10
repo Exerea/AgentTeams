@@ -13,7 +13,7 @@ AgentTeams v5 is a TAKT-first orchestration architecture with:
 - One runtime authority: `.takt/`
 - One task authority: `.takt/tasks/TASK-*.yaml`
 - One governance piece: `.takt/pieces/agentteams-governance.yaml`
-- One declaration authority: task `declarations` + `handoffs`
+- One evidence authority: task `declarations` + `handoffs` + `approvals`
 - One fleet authority: `.takt/control-plane/` (metadata only)
 - No runtime fallback to legacy operation
 
@@ -61,7 +61,7 @@ AgentTeams v5 is a TAKT-first orchestration architecture with:
 1. `agentteams orchestrate --task-file .takt/tasks/TASK-*.yaml`
 2. `at.py` compiles local task payload plus active team/skill context.
 3. TAKT executes `.takt/pieces/agentteams-governance.yaml`.
-4. Team intent/handoff evidence is recorded in `declarations` and `handoffs`.
+4. Team intent/handoff/gate evidence is recorded in `declarations`, `handoffs`, and `approvals`.
 5. Post validation runs:
    - `validate-takt-task.py`
    - `validate-takt-evidence.py`
@@ -93,6 +93,7 @@ Evidence coverage in review/done phases must include:
 - required teams
 - expected `rule:<rule_id>`
 - expected `skill:<skill_id>`
+- approval chain order: team leaders -> QA -> overall leader
 
 ## Scheduling Policy
 

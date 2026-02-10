@@ -14,6 +14,17 @@ rules:
   - skill-routing-governance
   priority: 100
   enabled: true
+- rule_id: team-leader-approval-required
+  when:
+    any_status:
+    - in_review
+    - done
+  require_teams:
+  - coordinator
+  require_skills:
+  - skill-team-leader-gate
+  priority: 95
+  enabled: true
 - rule_id: docs-required
   when:
     flag:

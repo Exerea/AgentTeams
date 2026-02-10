@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -11,6 +13,9 @@ try:
 except Exception as exc:  # pragma: no cover
     print(f"ERROR [PYTHON_DEP_MISSING] PyYAML is required: {exc}")
     sys.exit(1)
+
+TIMESTAMP_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+APPROVAL_STATUS = {"pending", "approved", "rejected"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -41,6 +46,16 @@ def team_of(role_ref: object) -> str:
     if "/" in value:
         return value.split("/", 1)[0].strip()
     return value
+
+
+def parse_iso_utc(value: object) -> datetime | None:
+    raw = str(value or "").strip()
+    if not TIMESTAMP_PATTERN.fullmatch(raw):
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
 
 
 def required_teams_from_flags(flags: object) -> set[str]:
@@ -108,20 +123,154 @@ def declared_teams(task: dict) -> set[str]:
 def extract_rule_skill_evidence(task: dict) -> tuple[set[str], set[str]]:
     rules: set[str] = set()
     skills: set[str] = set()
-    declarations = task.get("declarations") if isinstance(task.get("declarations"), list) else []
-    for entry in declarations:
-        if not isinstance(entry, dict):
-            continue
-        controls = entry.get("controlled_by")
+
+    def collect_controls(controls: object) -> None:
         if not isinstance(controls, list):
-            continue
+            return
         for value in controls:
             text = str(value or "").strip()
             if text.startswith("rule:"):
                 rules.add(text.removeprefix("rule:"))
             if text.startswith("skill:"):
                 skills.add(text.removeprefix("skill:"))
+
+    declarations = task.get("declarations") if isinstance(task.get("declarations"), list) else []
+    for entry in declarations:
+        if not isinstance(entry, dict):
+            continue
+        collect_controls(entry.get("controlled_by"))
+
+    approvals = task.get("approvals") if isinstance(task.get("approvals"), dict) else {}
+    team_leader_gates = approvals.get("team_leader_gates")
+    if isinstance(team_leader_gates, list):
+        for gate in team_leader_gates:
+            if isinstance(gate, dict):
+                collect_controls(gate.get("controlled_by"))
+
+    qa_gate = approvals.get("qa_gate")
+    if isinstance(qa_gate, dict):
+        collect_controls(qa_gate.get("controlled_by"))
+    leader_gate = approvals.get("leader_gate")
+    if isinstance(leader_gate, dict):
+        collect_controls(leader_gate.get("controlled_by"))
+
     return rules, skills
+
+
+def approval_chain_errors(task_file: Path, task: dict, status: str) -> list[str]:
+    errors: list[str] = []
+    approvals = task.get("approvals")
+    if not isinstance(approvals, dict):
+        errors.append(f"{task_file.as_posix()}: approvals map is required")
+        return errors
+
+    required_team_leaders = sorted(team for team in required_teams(task) if team != "qa-review-guild")
+    team_leader_gates = approvals.get("team_leader_gates")
+    if not isinstance(team_leader_gates, list):
+        errors.append(f"{task_file.as_posix()}: approvals.team_leader_gates must be a list")
+        team_leader_gates = []
+
+    latest_team_state: dict[str, tuple[datetime, str]] = {}
+    latest_team_state_any: dict[str, str] = {}
+    for gate in team_leader_gates:
+        if not isinstance(gate, dict):
+            continue
+        team = str(gate.get("team") or "").strip()
+        gate_status = str(gate.get("status") or "").strip()
+        gate_at = parse_iso_utc(gate.get("at"))
+        if team:
+            latest_team_state_any[team] = gate_status
+        if team and gate_at is not None:
+            existing = latest_team_state.get(team)
+            if existing is None or gate_at >= existing[0]:
+                latest_team_state[team] = (gate_at, gate_status)
+
+    qa_gate = approvals.get("qa_gate") if isinstance(approvals.get("qa_gate"), dict) else {}
+    qa_status = str(qa_gate.get("status") or "").strip()
+    qa_at = parse_iso_utc(qa_gate.get("at"))
+
+    leader_gate = approvals.get("leader_gate") if isinstance(approvals.get("leader_gate"), dict) else {}
+    leader_status = str(leader_gate.get("status") or "").strip()
+    leader_at = parse_iso_utc(leader_gate.get("at"))
+
+    if qa_status not in APPROVAL_STATUS:
+        errors.append(f"{task_file.as_posix()}: approvals.qa_gate.status is invalid")
+    if leader_status not in APPROVAL_STATUS:
+        errors.append(f"{task_file.as_posix()}: approvals.leader_gate.status is invalid")
+
+    if status in {"in_review", "done"}:
+        missing = sorted(team for team in required_team_leaders if team not in latest_team_state_any)
+        if missing:
+            errors.append(
+                f"{task_file.as_posix()}: missing team leader gate entries: {','.join(missing)}"
+            )
+
+        not_approved = sorted(
+            team
+            for team in required_team_leaders
+            if latest_team_state.get(team, (datetime.min.replace(tzinfo=timezone.utc), "pending"))[1] != "approved"
+        )
+        if not_approved:
+            errors.append(
+                f"{task_file.as_posix()}: team leader approvals must be approved before QA: {','.join(not_approved)}"
+            )
+
+        if qa_status != "approved":
+            errors.append(f"{task_file.as_posix()}: qa_gate must be approved for status={status}")
+
+    if status == "done" and leader_status != "approved":
+        errors.append(f"{task_file.as_posix()}: leader_gate must be approved for status=done")
+
+    if qa_status == "approved" and qa_at is not None:
+        for team in required_team_leaders:
+            state = latest_team_state.get(team)
+            if state is None:
+                continue
+            if state[0] > qa_at:
+                errors.append(
+                    f"{task_file.as_posix()}: team leader approval for {team} occurs after QA approval"
+                )
+
+    if leader_status == "approved":
+        if qa_status != "approved":
+            errors.append(f"{task_file.as_posix()}: leader_gate approved before qa_gate approval")
+        if leader_at is not None and qa_at is not None and leader_at < qa_at:
+            errors.append(f"{task_file.as_posix()}: leader_gate.at must be later than qa_gate.at")
+
+    rejection_times: list[datetime] = []
+    for team in required_team_leaders:
+        state = latest_team_state.get(team)
+        if state and state[1] == "rejected":
+            rejection_times.append(state[0])
+    if qa_status == "rejected" and qa_at is not None:
+        rejection_times.append(qa_at)
+    if leader_status == "rejected" and leader_at is not None:
+        rejection_times.append(leader_at)
+
+    if rejection_times:
+        if status == "done":
+            errors.append(f"{task_file.as_posix()}: status=done cannot contain rejected gate results")
+        latest_rejection = max(rejection_times)
+        declarations = task.get("declarations") if isinstance(task.get("declarations"), list) else []
+        has_rework = False
+        for entry in declarations:
+            if not isinstance(entry, dict):
+                continue
+            action = str(entry.get("action") or "").strip().lower()
+            if not action:
+                continue
+            if "rework" not in action and "fix" not in action and "address_rejection" not in action:
+                continue
+            at = parse_iso_utc(entry.get("at"))
+            if at is not None and at >= latest_rejection:
+                has_rework = True
+                break
+        if not has_rework:
+            errors.append(
+                f"{task_file.as_posix()}: rejected gate requires rework declaration by AI team after rejection"
+            )
+
+    return errors
 
 
 def rule_matches_task(rule: dict, task: dict) -> bool:
@@ -253,6 +402,8 @@ def main() -> int:
                 evidence_errors.append(
                     f"{task_file.as_posix()}: missing skill evidence for status={status}: {','.join(missing_skills)}"
                 )
+
+        evidence_errors.extend(approval_chain_errors(task_file, task, status))
 
     log_files = [p for p in logs_dir.glob("*") if p.is_file()] if logs_dir.exists() else []
     if not log_files and not args.allow_empty_logs:

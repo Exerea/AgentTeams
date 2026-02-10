@@ -80,4 +80,42 @@ handoffs:
   memo: DECLARATION team=documentation-guild role=api-spec-owner task=T-120 action=handoff_to_tech_writer
     | /api/v1/tiers 仕様更新済み。README と図更新を依頼。
 notes: docs/api/openapi.yaml に /api/v1/tiers を反映済み。互換性確認中。
+approvals:
+  team_leader_gates:
+  - team: coordinator
+    leader_role: team-lead
+    status: approved
+    at: '2026-02-07T03:01:00Z'
+    note: coordination approval complete
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  - team: documentation-guild
+    leader_role: team-lead
+    status: approved
+    at: '2026-02-07T03:02:00Z'
+    note: openapi sync approval complete
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  qa_gate:
+    by: qa-review-guild/lead-reviewer
+    status: approved
+    at: '2026-02-07T03:03:00Z'
+    note: qa approved api docs consistency
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:qa-required"
+    - "skill:skill-qa-regression-trace"
+  leader_gate:
+    by: leader/overall-lead
+    status: pending
+    at: '2026-02-07T03:04:00Z'
+    note: awaiting final package completion
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:default-routing"
+    - "skill:skill-routing-governance"
 updated_at: '2026-02-07T03:00:00Z'

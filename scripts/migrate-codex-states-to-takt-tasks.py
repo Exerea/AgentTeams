@@ -128,6 +128,83 @@ def build_declarations(handoffs: list[dict], updated_at: str) -> list[dict]:
     return declarations
 
 
+def required_teams_from_flags(flags: dict[str, bool]) -> list[str]:
+    teams = ["coordinator"]
+    if bool(flags.get("security_required", False)):
+        teams.append("backend")
+    if bool(flags.get("ux_required", False)):
+        teams.append("frontend")
+    if bool(flags.get("docs_required", False)):
+        teams.append("documentation-guild")
+    if bool(flags.get("research_required", False)):
+        teams.append("innovation-research-guild")
+    if bool(flags.get("qa_required", False)):
+        teams.append("qa-review-guild")
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for team in teams:
+        if team not in seen:
+            seen.add(team)
+            deduped.append(team)
+    return deduped
+
+
+def build_approvals(status: str, flags: dict[str, bool], updated_at: str) -> dict:
+    required = [team for team in required_teams_from_flags(flags) if team != "qa-review-guild"]
+    leader_status = "pending"
+    qa_status = "pending"
+    team_status = "pending"
+    if status == "done":
+        team_status = "approved"
+        qa_status = "approved"
+        leader_status = "approved"
+    elif status == "in_review":
+        team_status = "approved"
+        qa_status = "approved"
+
+    team_gates = [
+        {
+            "team": team,
+            "leader_role": "team-lead",
+            "status": team_status,
+            "at": updated_at,
+            "note": "migrated from legacy state",
+            "controlled_by": [
+                "piece:agentteams-governance",
+                "rule:team-leader-approval-required",
+                "skill:skill-team-leader-gate",
+            ],
+        }
+        for team in required
+    ]
+
+    return {
+        "team_leader_gates": team_gates,
+        "qa_gate": {
+            "by": "qa-review-guild/lead-reviewer",
+            "status": qa_status,
+            "at": updated_at,
+            "note": "migrated from legacy state",
+            "controlled_by": [
+                "piece:agentteams-governance",
+                "rule:qa-required",
+                "skill:skill-qa-regression-trace",
+            ],
+        },
+        "leader_gate": {
+            "by": "leader/overall-lead",
+            "status": leader_status,
+            "at": updated_at,
+            "note": "migrated from legacy state",
+            "controlled_by": [
+                "piece:agentteams-governance",
+                "rule:default-routing",
+                "skill:skill-routing-governance",
+            ],
+        },
+    }
+
+
 def convert(src_file: Path) -> dict:
     raw = yaml.safe_load(src_file.read_text(encoding="utf-8")) or {}
 
@@ -147,6 +224,7 @@ def convert(src_file: Path) -> dict:
     updated_at = to_iso(str(raw.get("updated_at") or ""))
     handoffs = list(raw.get("handoffs") or [])
     declarations = build_declarations(handoffs, updated_at)
+    approvals = build_approvals(STATUS_MAP.get(status, "todo"), flags, updated_at)
 
     return {
         "id": normalize_id(str(raw.get("id") or ""), src_file.stem),
@@ -160,6 +238,7 @@ def convert(src_file: Path) -> dict:
         "warnings": list(raw.get("warnings") or []),
         "declarations": declarations,
         "handoffs": handoffs,
+        "approvals": approvals,
         "notes": notes,
         "updated_at": updated_at,
     }

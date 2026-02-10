@@ -10,6 +10,7 @@ control plane for cross-project detection and self-refresh proposals.
 - Canonical orchestration piece: `.takt/pieces/agentteams-governance.yaml`
 - Fleet control plane: `.takt/control-plane/`
 - Legacy historical task files: `legacy/codex-states/`
+- Mandatory gate order: `team leaders -> QA -> overall leader`
 
 ## CLI
 
@@ -112,9 +113,53 @@ declarations:
       - "rule:default-routing"
       - "skill:skill-routing-governance"
 handoffs: []
+approvals:
+  team_leader_gates:
+    - team: coordinator
+      leader_role: team-lead
+      status: approved # pending|approved|rejected
+      at: 2026-02-10T00:05:00Z
+      note: "triage ownership accepted"
+      controlled_by:
+        - "piece:agentteams-governance"
+        - "rule:team-leader-approval-required"
+        - "skill:skill-team-leader-gate"
+    - team: documentation-guild
+      leader_role: team-lead
+      status: approved
+      at: 2026-02-10T00:06:00Z
+      note: "docs path approved"
+      controlled_by:
+        - "piece:agentteams-governance"
+        - "rule:team-leader-approval-required"
+        - "skill:skill-team-leader-gate"
+  qa_gate:
+    by: qa-review-guild/lead-reviewer
+    status: approved
+    at: 2026-02-10T00:08:00Z
+    note: "qa checks passed"
+    controlled_by:
+      - "piece:agentteams-governance"
+      - "rule:qa-required"
+      - "skill:skill-qa-regression-trace"
+  leader_gate:
+    by: leader/overall-lead
+    status: pending
+    at: 2026-02-10T00:09:00Z
+    note: "awaiting final decision"
+    controlled_by:
+      - "piece:agentteams-governance"
+      - "rule:default-routing"
+      - "skill:skill-routing-governance"
 notes: ""
 updated_at: 2026-02-10T00:00:00Z
 ```
+
+Approval policy:
+
+- Team leader approvals for all required teams are mandatory before QA.
+- QA approval is mandatory before overall leader approval.
+- Any rejection must route back to execute with explicit rework declaration evidence.
 
 Compatibility policy:
 

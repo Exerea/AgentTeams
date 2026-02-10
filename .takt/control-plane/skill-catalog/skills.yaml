@@ -14,6 +14,23 @@ skills:
   evidence_requirements:
   - declarations controlled_by must include rule:default-routing
   enabled: true
+- skill_id: skill-team-leader-gate
+  description: enforce strict per-team-leader approvals before QA and overall leader gates
+  applies_to_teams:
+  - coordinator
+  trigger:
+    capability_tags:
+    - governance
+    - final-review
+    - qa-review
+  instruction_ref: .takt/skills/skill-team-leader-gate.md
+  policy_refs:
+  - .takt/policies/governance.md
+  - .takt/policies/quality.md
+  evidence_requirements:
+  - approvals.team_leader_gates controlled_by must include rule:team-leader-approval-required
+  - approvals.qa_gate and approvals.leader_gate order must be team_leaders -> qa -> leader
+  enabled: true
 - skill_id: skill-docs-synchronization
   description: synchronize docs, architecture guides, and API descriptions
   applies_to_teams:

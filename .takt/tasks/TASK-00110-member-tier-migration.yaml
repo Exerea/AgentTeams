@@ -114,4 +114,51 @@ handoffs:
   memo: DECLARATION team=documentation-guild role=api-spec-owner task=T-110 action=handoff_to_code_critic
     | OpenAPI sync completed. Proceed to QA review.
 notes: ADR gate 条件を満たしたため実装着手。Security先行レビュー後、ロールバック手順を含めてレビュー待ち。
+approvals:
+  team_leader_gates:
+  - team: coordinator
+    leader_role: team-lead
+    status: approved
+    at: '2026-02-07T02:51:00Z'
+    note: coordination approval complete
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  - team: backend
+    leader_role: team-lead
+    status: approved
+    at: '2026-02-07T02:52:00Z'
+    note: backend security implementation approved
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  - team: documentation-guild
+    leader_role: team-lead
+    status: approved
+    at: '2026-02-07T02:53:00Z'
+    note: api docs synchronization approved
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  qa_gate:
+    by: qa-review-guild/lead-reviewer
+    status: approved
+    at: '2026-02-07T02:54:00Z'
+    note: qa approved migration and regression checks
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:qa-required"
+    - "skill:skill-qa-regression-trace"
+  leader_gate:
+    by: leader/overall-lead
+    status: pending
+    at: '2026-02-07T02:55:00Z'
+    note: awaiting final release synchronization
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:default-routing"
+    - "skill:skill-routing-governance"
 updated_at: '2026-02-07T02:45:00Z'

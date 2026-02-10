@@ -307,6 +307,16 @@ def doctor(verbose: bool) -> int:
         return fail("TAKT_PIECE_MISSING", f"missing piece: {piece.as_posix()}")
     print(f"OK [TAKT_PIECE_OK] found: {piece.as_posix()}")
 
+    team_leader_persona = repo_root / ".takt" / "personas" / "team-leader-reviewer.md"
+    if not team_leader_persona.exists():
+        return fail("TAKT_PERSONA_MISSING", f"missing persona: {team_leader_persona.as_posix()}")
+    print(f"OK [TAKT_PERSONA_OK] found: {team_leader_persona.as_posix()}")
+
+    team_leader_instruction = repo_root / ".takt" / "instructions" / "team-leader-gate.md"
+    if not team_leader_instruction.exists():
+        return fail("TAKT_INSTRUCTION_MISSING", f"missing instruction: {team_leader_instruction.as_posix()}")
+    print(f"OK [TAKT_INSTRUCTION_OK] found: {team_leader_instruction.as_posix()}")
+
     tasks_dir = repo_root / ".takt" / "tasks"
     if not tasks_dir.exists():
         return fail("TAKT_TASK_DIR_MISSING", f"missing tasks dir: {tasks_dir.as_posix()}")
@@ -567,6 +577,52 @@ def compile_orchestration_prompt(task_file: Path, task: dict, repo_root: Path) -
         lines.append("- (none)")
 
     declarations = as_dict_list(task.get("declarations"))
+    approvals = task.get("approvals") if isinstance(task.get("approvals"), dict) else {}
+
+    lines.append("")
+    lines.append("Mandatory Approval Chain:")
+    lines.append("1) all required team leader approvals")
+    lines.append("2) QA approval")
+    lines.append("3) overall leader approval")
+    lines.append("If any gate is rejected, route back to execute and add rework declaration evidence.")
+
+    lines.append("")
+    lines.append("Current Approval Evidence:")
+    team_leader_gates = as_dict_list(approvals.get("team_leader_gates") if approvals else [])
+    lines.append("- team_leader_gates:")
+    if team_leader_gates:
+        for gate in team_leader_gates:
+            at = str(gate.get("at", "")).strip()
+            team = str(gate.get("team", "")).strip()
+            role = str(gate.get("leader_role", "")).strip()
+            gate_status = str(gate.get("status", "")).strip()
+            note = str(gate.get("note", "")).strip()
+            controls = gate.get("controlled_by")
+            controlled_by = ", ".join(str(v) for v in controls) if isinstance(controls, list) else "(none)"
+            lines.append(
+                f"  - at={at} team={team} leader_role={role} status={gate_status} note={note} controlled_by={controlled_by}"
+            )
+    else:
+        lines.append("  - (none)")
+
+    qa_gate = approvals.get("qa_gate") if isinstance(approvals.get("qa_gate"), dict) else {}
+    qa_controls = qa_gate.get("controlled_by") if isinstance(qa_gate.get("controlled_by"), list) else []
+    qa_controlled_by = ", ".join(str(v) for v in qa_controls) if qa_controls else "(none)"
+    lines.append(
+        f"- qa_gate: at={str(qa_gate.get('at', '')).strip()} by={str(qa_gate.get('by', '')).strip()} "
+        f"status={str(qa_gate.get('status', '')).strip()} note={str(qa_gate.get('note', '')).strip()} "
+        f"controlled_by={qa_controlled_by}"
+    )
+
+    leader_gate = approvals.get("leader_gate") if isinstance(approvals.get("leader_gate"), dict) else {}
+    leader_controls = leader_gate.get("controlled_by") if isinstance(leader_gate.get("controlled_by"), list) else []
+    leader_controlled_by = ", ".join(str(v) for v in leader_controls) if leader_controls else "(none)"
+    lines.append(
+        f"- leader_gate: at={str(leader_gate.get('at', '')).strip()} by={str(leader_gate.get('by', '')).strip()} "
+        f"status={str(leader_gate.get('status', '')).strip()} note={str(leader_gate.get('note', '')).strip()} "
+        f"controlled_by={leader_controlled_by}"
+    )
+
     lines.append("")
     lines.append("Declarations (who does what):")
     if declarations:

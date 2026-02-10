@@ -80,4 +80,42 @@ handoffs:
   memo: DECLARATION team=documentation-guild role=tech-writer task=T-130 action=handoff_to_code_critic
     | docs/guides と README 同期中。最終確認を依頼予定。
 notes: Mermaid 図と機能一覧を更新中。
+approvals:
+  team_leader_gates:
+  - team: coordinator
+    leader_role: team-lead
+    status: approved
+    at: '2026-02-07T03:16:00Z'
+    note: coordination approval complete
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  - team: documentation-guild
+    leader_role: team-lead
+    status: approved
+    at: '2026-02-07T03:17:00Z'
+    note: documentation update plan approved
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:team-leader-approval-required"
+    - "skill:skill-team-leader-gate"
+  qa_gate:
+    by: qa-review-guild/lead-reviewer
+    status: pending
+    at: '2026-02-07T03:18:00Z'
+    note: qa gate pending until implementation completion
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:qa-required"
+    - "skill:skill-qa-regression-trace"
+  leader_gate:
+    by: leader/overall-lead
+    status: pending
+    at: '2026-02-07T03:19:00Z'
+    note: overall gate pending
+    controlled_by:
+    - "piece:agentteams-governance"
+    - "rule:default-routing"
+    - "skill:skill-routing-governance"
 updated_at: '2026-02-07T03:15:00Z'

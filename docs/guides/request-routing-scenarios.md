@@ -6,12 +6,17 @@ This guide defines canonical routing for AgentTeams v5 under TAKT-only runtime.
 
 - Task file exists under `.takt/tasks/`.
 - Task schema is valid, including `declarations`, `handoffs`, and `routing`.
+- Task schema includes `approvals` with strict gate order.
 - Legacy flags (`qa_required`, `security_required`, `docs_required`) are allowed during compatibility period.
 
 ## Declaration Contract (Who Does What)
 
 - `declarations` is the canonical declaration log of role intent.
 - Each declaration must record `at`, `team`, `role`, `action`, `what`, `controlled_by`.
+- `approvals` is the canonical gate log and must follow:
+  - required team leaders
+  - QA
+  - overall leader
 - `controlled_by` must include governance evidence when applicable:
   - `rule:<rule_id>`
   - `skill:<skill_id>`
@@ -30,10 +35,13 @@ This guide defines canonical routing for AgentTeams v5 under TAKT-only runtime.
 3. Handoff (`T2`)
    - Team: current owner to next reviewer
    - Action: handoff with evidence note
-4. Review / rework (`T3`)
-   - Team: QA and required specialist teams
+4. Team leader gate (`T3`)
+   - Team: each required team leader
+   - Action: per-team approval or rejection
+5. QA gate (`T4`)
+   - Team: `qa-review-guild`
    - Action: approve or request rework
-5. Leader gate (`T4`)
+6. Leader gate (`T5`)
    - Team: `leader`
    - Action: final go/no-go
 
@@ -121,8 +129,9 @@ Expected routing:
 
 ## Failure and Rework Routing
 
-- QA rework -> piece loops back to execute.
-- Leader rework -> piece loops back to execute.
+- Team leader rejection -> piece loops back to execute.
+- QA rejection -> piece loops back to execute.
+- Leader rejection -> piece loops back to execute.
 - Recurrent cross-project issues -> refresh queue/proposal generated in control-plane.
 
 ## Operational Commands

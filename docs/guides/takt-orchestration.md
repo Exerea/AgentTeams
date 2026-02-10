@@ -57,6 +57,44 @@ declarations:
       - "rule:default-routing"
       - "skill:skill-routing-governance"
 handoffs: []
+approvals:
+  team_leader_gates:
+    - team: coordinator
+      leader_role: team-lead
+      status: approved
+      at: 2026-02-10T00:05:00Z
+      note: "triage accepted"
+      controlled_by:
+        - "piece:agentteams-governance"
+        - "rule:team-leader-approval-required"
+        - "skill:skill-team-leader-gate"
+    - team: documentation-guild
+      leader_role: team-lead
+      status: approved
+      at: 2026-02-10T00:06:00Z
+      note: "docs ownership accepted"
+      controlled_by:
+        - "piece:agentteams-governance"
+        - "rule:team-leader-approval-required"
+        - "skill:skill-team-leader-gate"
+  qa_gate:
+    by: qa-review-guild/lead-reviewer
+    status: approved
+    at: 2026-02-10T00:08:00Z
+    note: "qa checks passed"
+    controlled_by:
+      - "piece:agentteams-governance"
+      - "rule:qa-required"
+      - "skill:skill-qa-regression-trace"
+  leader_gate:
+    by: leader/overall-lead
+    status: pending
+    at: 2026-02-10T00:09:00Z
+    note: "awaiting final go/no-go"
+    controlled_by:
+      - "piece:agentteams-governance"
+      - "rule:default-routing"
+      - "skill:skill-routing-governance"
 notes: ""
 updated_at: 2026-02-10T00:00:00Z
 ```
@@ -66,6 +104,8 @@ Declaration policy:
 - `declarations` must explicitly state who does what before/at each handoff.
 - First declaration should be coordinator triage.
 - In review/done phases, declarations should contain `rule:<rule_id>` and `skill:<skill_id>` evidence.
+- Approval chain is mandatory: `team leaders -> QA -> overall leader`.
+- Rejected gates must route back to execute and add rework declarations.
 
 ## 3. Execute Orchestration
 

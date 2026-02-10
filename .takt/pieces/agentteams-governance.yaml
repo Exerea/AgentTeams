@@ -1,9 +1,10 @@
 name: agentteams-governance
 description: Governance-first orchestration for AgentTeams v5
-max_iterations: 20
+max_iterations: 30
 personas:
   coordinator: ../personas/coordinator.md
   implementer: ../personas/implementer.md
+  team_leader_reviewer: ../personas/team-leader-reviewer.md
   qa_reviewer: ../personas/qa-reviewer.md
   leader: ../personas/leader.md
 policies:
@@ -14,6 +15,7 @@ knowledge:
 instructions:
   triage: ../instructions/triage.md
   execute: ../instructions/execute.md
+  team_leader_gate: ../instructions/team-leader-gate.md
   qa_review: ../instructions/qa-review.md
   leader_gate: ../instructions/leader-gate.md
 report_formats:
@@ -59,8 +61,35 @@ movements:
       - WebFetch
     rules:
       - condition: implementation completed and ready for review
-        next: qa_review
+        next: team_leader_gate
       - condition: implementation blocked
+        next: ABORT
+  - name: team_leader_gate
+    edit: false
+    persona: team_leader_reviewer
+    policy:
+      - governance
+      - quality
+    knowledge:
+      - topology
+    instruction: team_leader_gate
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Bash
+      - WebSearch
+      - WebFetch
+    output_contracts:
+      report:
+        - name: team-leader-gate.md
+          format: summary
+    rules:
+      - condition: all required team leaders approved
+        next: qa_review
+      - condition: team leader rejected or missing evidence
+        next: execute
+      - condition: critical governance violation found
         next: ABORT
   - name: qa_review
     edit: false

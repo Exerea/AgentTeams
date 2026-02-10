@@ -16,6 +16,7 @@ except Exception as exc:  # pragma: no cover
 ALLOWED_STATUS = {"todo", "in_progress", "in_review", "blocked", "done"}
 ID_PATTERN = re.compile(r"^T-\d{5}$")
 TIMESTAMP_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+APPROVAL_STATUS = {"pending", "approved", "rejected"}
 REQUIRED_KEYS = [
     "id",
     "title",
@@ -27,6 +28,7 @@ REQUIRED_KEYS = [
     "warnings",
     "declarations",
     "handoffs",
+    "approvals",
     "notes",
     "updated_at",
 ]
@@ -39,6 +41,8 @@ FLAG_KEYS = [
 ]
 DECLARATION_KEYS = ["at", "team", "role", "action", "what", "controlled_by"]
 ROUTING_KEYS = ["required_teams", "capability_tags"]
+TEAM_LEADER_GATE_KEYS = ["team", "leader_role", "status", "at", "note", "controlled_by"]
+SINGLE_GATE_KEYS = ["by", "status", "at", "note", "controlled_by"]
 FLAGS_COMPAT_END = date(2026, 6, 30)
 
 
@@ -121,6 +125,213 @@ def validate_flags(path: Path, task: dict, errors: list[str]) -> bool:
         if not isinstance(flags[flag], bool):
             errors.append(f"{path.as_posix()}: flags.{flag} must be boolean")
     return True
+
+
+def required_teams_for_approval(task: dict) -> list[str]:
+    routing = task.get("routing")
+    if isinstance(routing, dict) and isinstance(routing.get("required_teams"), list):
+        teams = parse_teams(routing.get("required_teams"))
+        if teams:
+            if "coordinator" not in teams:
+                teams.append("coordinator")
+            return teams
+
+    flags = task.get("flags") if isinstance(task.get("flags"), dict) else {}
+    teams = ["coordinator"]
+    if bool(flags.get("security_required", False)):
+        teams.append("backend")
+    if bool(flags.get("ux_required", False)):
+        teams.append("frontend")
+    if bool(flags.get("docs_required", False)):
+        teams.append("documentation-guild")
+    if bool(flags.get("research_required", False)):
+        teams.append("innovation-research-guild")
+    teams.append("qa-review-guild")
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for team in teams:
+        if team not in seen:
+            seen.add(team)
+            deduped.append(team)
+    return deduped
+
+
+def parse_iso_utc(value: object) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    if not TIMESTAMP_PATTERN.fullmatch(raw):
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def validate_controlled_by(path: Path, pointer: str, controls: object, errors: list[str]) -> None:
+    if not isinstance(controls, list) or len(controls) == 0:
+        errors.append(f"{path.as_posix()}: {pointer}.controlled_by must be a non-empty list")
+        return
+    for ctrl_idx, control in enumerate(controls):
+        if not isinstance(control, str) or not control.strip():
+            errors.append(
+                f"{path.as_posix()}: {pointer}.controlled_by[{ctrl_idx}] must be a non-empty string"
+            )
+
+
+def validate_single_gate(
+    path: Path,
+    pointer: str,
+    gate: object,
+    actor_key: str,
+    errors: list[str],
+) -> tuple[str, datetime | None]:
+    if not isinstance(gate, dict):
+        errors.append(f"{path.as_posix()}: {pointer} must be a map")
+        return "", None
+
+    required_keys = SINGLE_GATE_KEYS
+    for key in required_keys:
+        if key not in gate:
+            errors.append(f"{path.as_posix()}: {pointer}.{key} is required")
+
+    actor = str(gate.get(actor_key) or "").strip()
+    if not actor:
+        errors.append(f"{path.as_posix()}: {pointer}.{actor_key} must be a non-empty string")
+
+    status = str(gate.get("status") or "").strip()
+    if status not in APPROVAL_STATUS:
+        errors.append(
+            f"{path.as_posix()}: {pointer}.status must be one of {sorted(APPROVAL_STATUS)}"
+        )
+
+    at_raw = str(gate.get("at") or "").strip()
+    if not TIMESTAMP_PATTERN.fullmatch(at_raw):
+        errors.append(f"{path.as_posix()}: {pointer}.at must match YYYY-MM-DDTHH:MM:SSZ")
+
+    note = gate.get("note")
+    if not isinstance(note, str):
+        errors.append(f"{path.as_posix()}: {pointer}.note must be a string")
+
+    validate_controlled_by(path, pointer, gate.get("controlled_by"), errors)
+    return status, parse_iso_utc(at_raw)
+
+
+def validate_approvals(path: Path, task: dict, errors: list[str], status: str) -> None:
+    approvals = task.get("approvals")
+    if not isinstance(approvals, dict):
+        errors.append(f"{path.as_posix()}: approvals must be a map")
+        return
+
+    for key in ["team_leader_gates", "qa_gate", "leader_gate"]:
+        if key not in approvals:
+            errors.append(f"{path.as_posix()}: approvals.{key} is required")
+
+    team_leader_gates = approvals.get("team_leader_gates")
+    if not isinstance(team_leader_gates, list):
+        errors.append(f"{path.as_posix()}: approvals.team_leader_gates must be a list")
+        team_leader_gates = []
+
+    latest_team_state: dict[str, tuple[datetime, str]] = {}
+    latest_team_state_any: dict[str, str] = {}
+    for idx, gate in enumerate(team_leader_gates):
+        pointer = f"approvals.team_leader_gates[{idx}]"
+        if not isinstance(gate, dict):
+            errors.append(f"{path.as_posix()}: {pointer} must be a map")
+            continue
+        for key in TEAM_LEADER_GATE_KEYS:
+            if key not in gate:
+                errors.append(f"{path.as_posix()}: {pointer}.{key} is required")
+
+        team = str(gate.get("team") or "").strip()
+        if not team:
+            errors.append(f"{path.as_posix()}: {pointer}.team must be a non-empty string")
+
+        leader_role = str(gate.get("leader_role") or "").strip()
+        if not leader_role:
+            errors.append(f"{path.as_posix()}: {pointer}.leader_role must be a non-empty string")
+
+        gate_status = str(gate.get("status") or "").strip()
+        if gate_status not in APPROVAL_STATUS:
+            errors.append(
+                f"{path.as_posix()}: {pointer}.status must be one of {sorted(APPROVAL_STATUS)}"
+            )
+
+        at_raw = str(gate.get("at") or "").strip()
+        if not TIMESTAMP_PATTERN.fullmatch(at_raw):
+            errors.append(f"{path.as_posix()}: {pointer}.at must match YYYY-MM-DDTHH:MM:SSZ")
+        at_dt = parse_iso_utc(at_raw)
+
+        note = gate.get("note")
+        if not isinstance(note, str):
+            errors.append(f"{path.as_posix()}: {pointer}.note must be a string")
+
+        validate_controlled_by(path, pointer, gate.get("controlled_by"), errors)
+
+        if team:
+            latest_team_state_any[team] = gate_status
+        if team and at_dt is not None:
+            existing = latest_team_state.get(team)
+            if existing is None or at_dt >= existing[0]:
+                latest_team_state[team] = (at_dt, gate_status)
+
+    qa_status, qa_at = validate_single_gate(path, "approvals.qa_gate", approvals.get("qa_gate"), "by", errors)
+    leader_status, leader_at = validate_single_gate(
+        path,
+        "approvals.leader_gate",
+        approvals.get("leader_gate"),
+        "by",
+        errors,
+    )
+
+    required_teams = required_teams_for_approval(task)
+    expected_team_leaders = [team for team in required_teams if team != "qa-review-guild"]
+
+    if status in {"in_review", "done"}:
+        missing_teams = sorted(team for team in expected_team_leaders if team not in latest_team_state_any)
+        if missing_teams:
+            errors.append(
+                f"{path.as_posix()}: approvals.team_leader_gates missing teams for status={status}: {','.join(missing_teams)}"
+            )
+
+        not_approved_teams = sorted(
+            team
+            for team in expected_team_leaders
+            if latest_team_state.get(team, (datetime.min.replace(tzinfo=timezone.utc), "pending"))[1] != "approved"
+        )
+        if not_approved_teams:
+            errors.append(
+                f"{path.as_posix()}: team leader approvals must be approved before QA for status={status}: {','.join(not_approved_teams)}"
+            )
+
+        if qa_status != "approved":
+            errors.append(f"{path.as_posix()}: approvals.qa_gate.status must be approved for status={status}")
+
+    if status == "done" and leader_status != "approved":
+        errors.append(f"{path.as_posix()}: approvals.leader_gate.status must be approved for status=done")
+
+    if qa_status == "approved" and qa_at is not None:
+        for team in expected_team_leaders:
+            team_at = latest_team_state.get(team, (None, ""))[0] if team in latest_team_state else None
+            if team_at is not None and team_at > qa_at:
+                errors.append(
+                    f"{path.as_posix()}: team leader approval for {team} must occur before qa_gate approval"
+                )
+
+    if leader_status == "approved":
+        if qa_status != "approved":
+            errors.append(
+                f"{path.as_posix()}: approvals.leader_gate cannot be approved before qa_gate approval"
+            )
+        if qa_at is not None and leader_at is not None and leader_at < qa_at:
+            errors.append(
+                f"{path.as_posix()}: approvals.leader_gate.at must be later than approvals.qa_gate.at"
+            )
+
+    if status == "done":
+        has_rejection = any(state[1] == "rejected" for state in latest_team_state.values()) or qa_status == "rejected" or leader_status == "rejected"
+        if has_rejection:
+            errors.append(f"{path.as_posix()}: status=done cannot include rejected approvals")
 
 
 def validate_task(path: Path, effective_date: date) -> list[str]:
@@ -211,6 +422,8 @@ def validate_task(path: Path, effective_date: date) -> list[str]:
                             errors.append(
                                 f"{path.as_posix()}: declarations[{index}].controlled_by[{ctrl_idx}] must be a non-empty string"
                             )
+
+    validate_approvals(path, task, errors, status)
 
     return errors
 

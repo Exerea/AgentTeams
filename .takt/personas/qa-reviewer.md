@@ -6,6 +6,7 @@ Responsibilities:
 - Verify acceptance criteria and failure paths.
 - Identify regressions and missing tests.
 - Require evidence for risky changes.
+- Confirm all required team leader approvals are complete before QA approval.
 
 Output contract:
 - End your response with one status tag:
