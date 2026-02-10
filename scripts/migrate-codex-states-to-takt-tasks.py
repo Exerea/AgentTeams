@@ -68,6 +68,66 @@ def build_task_prompt(title: str, notes: str, flags: dict[str, bool]) -> str:
     return "\n".join(lines).strip()
 
 
+def split_role_ref(value: object) -> tuple[str, str]:
+    text = str(value or "").strip()
+    if "/" not in text:
+        return text, ""
+    team, role = text.split("/", 1)
+    return team.strip(), role.strip()
+
+
+def declaration_from_handoff(entry: dict, fallback_at: str) -> dict:
+    src_team, src_role = split_role_ref(entry.get("from"))
+    dst_team, dst_role = split_role_ref(entry.get("to"))
+    action = "handoff"
+    memo = str(entry.get("memo") or "").strip()
+    if "action=" in memo:
+        action_part = memo.split("action=", 1)[1]
+        action = action_part.split()[0].strip().strip("|")
+    elif dst_role:
+        action = f"handoff_to_{dst_role.replace('-', '_')}"
+
+    controlled_by = ["handoff", "flags"]
+    if src_team:
+        controlled_by.append(f"team:{src_team}")
+    if dst_team:
+        controlled_by.append(f"handoff_target:{dst_team}")
+
+    return {
+        "at": to_iso(str(entry.get("at") or fallback_at)),
+        "team": src_team or "coordinator",
+        "role": src_role or "coordinator",
+        "action": action,
+        "what": memo or "task handoff declaration",
+        "controlled_by": controlled_by,
+    }
+
+
+def build_declarations(handoffs: list[dict], updated_at: str) -> list[dict]:
+    declarations: list[dict] = []
+    first_at = updated_at
+    if handoffs and isinstance(handoffs[0], dict):
+        first_at = to_iso(str(handoffs[0].get("at") or updated_at))
+
+    declarations.append(
+        {
+            "at": first_at,
+            "team": "coordinator",
+            "role": "coordinator",
+            "action": "triage",
+            "what": "decompose task and assign required teams",
+            "controlled_by": ["piece:agentteams-governance", "flags"],
+        }
+    )
+
+    for entry in handoffs:
+        if not isinstance(entry, dict):
+            continue
+        declarations.append(declaration_from_handoff(entry, updated_at))
+
+    return declarations
+
+
 def convert(src_file: Path) -> dict:
     raw = yaml.safe_load(src_file.read_text(encoding="utf-8")) or {}
 
@@ -84,6 +144,10 @@ def convert(src_file: Path) -> dict:
     notes = str(raw.get("notes") or "")
     status = str(raw.get("status") or "todo")
 
+    updated_at = to_iso(str(raw.get("updated_at") or ""))
+    handoffs = list(raw.get("handoffs") or [])
+    declarations = build_declarations(handoffs, updated_at)
+
     return {
         "id": normalize_id(str(raw.get("id") or ""), src_file.stem),
         "title": title,
@@ -94,9 +158,10 @@ def convert(src_file: Path) -> dict:
         "acceptance": list(raw.get("acceptance") or []),
         "flags": flags,
         "warnings": list(raw.get("warnings") or []),
-        "handoffs": list(raw.get("handoffs") or []),
+        "declarations": declarations,
+        "handoffs": handoffs,
         "notes": notes,
-        "updated_at": to_iso(str(raw.get("updated_at") or "")),
+        "updated_at": updated_at,
     }
 
 

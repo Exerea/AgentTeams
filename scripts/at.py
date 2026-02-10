@@ -337,6 +337,15 @@ def compile_orchestration_prompt(task_file: Path, task: dict) -> str:
             return [str(v) for v in values]
         return []
 
+    def as_dict_list(values: object) -> list[dict]:
+        if not isinstance(values, list):
+            return []
+        out: list[dict] = []
+        for item in values:
+            if isinstance(item, dict):
+                out.append(item)
+        return out
+
     flags = task.get("flags") if isinstance(task.get("flags"), dict) else {}
     lines = [
         "You are executing an AgentTeams v4 governance task.",
@@ -377,6 +386,40 @@ def compile_orchestration_prompt(task_file: Path, task: dict) -> str:
     ]:
         value = bool(flags.get(key, False)) if isinstance(flags, dict) else False
         lines.append(f"- {key}: {str(value).lower()}")
+
+    declarations = as_dict_list(task.get("declarations"))
+    lines.append("")
+    lines.append("Declarations (who does what):")
+    if declarations:
+        for declaration in declarations:
+            at = str(declaration.get("at", "")).strip()
+            team = str(declaration.get("team", "")).strip()
+            role = str(declaration.get("role", "")).strip()
+            action = str(declaration.get("action", "")).strip()
+            what = str(declaration.get("what", "")).strip()
+            controls = declaration.get("controlled_by")
+            if isinstance(controls, list) and controls:
+                controlled_by = ", ".join(str(v) for v in controls)
+            else:
+                controlled_by = "(none)"
+            lines.append(
+                f"- at={at} team={team} role={role} action={action} do={what} controlled_by={controlled_by}"
+            )
+    else:
+        lines.append("- (none)")
+
+    handoffs = as_dict_list(task.get("handoffs"))
+    lines.append("")
+    lines.append("Handoffs (task passing events):")
+    if handoffs:
+        for handoff in handoffs:
+            at = str(handoff.get("at", "")).strip()
+            src = str(handoff.get("from", "")).strip()
+            dst = str(handoff.get("to", "")).strip()
+            memo = str(handoff.get("memo", "")).strip()
+            lines.append(f"- at={at} from={src} to={dst} memo={memo}")
+    else:
+        lines.append("- (none)")
 
     notes = str(task.get("notes", "")).strip()
     if notes:

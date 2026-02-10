@@ -35,10 +35,24 @@ flags:
   docs_required: true
   research_required: false
 warnings: []
+declarations:
+  - at: 2026-02-10T00:00:00Z
+    team: coordinator
+    role: coordinator
+    action: triage
+    what: "decompose task and assign required teams"
+    controlled_by:
+      - "piece:agentteams-governance"
+      - "flags"
 handoffs: []
 notes: ""
 updated_at: 2026-02-10T00:00:00Z
 ```
+
+Declaration policy:
+- `declarations` must explicitly state who will do what before or at each handoff.
+- First declaration should be coordinator triage.
+- Validation fails when required declaration structure is missing.
 
 ## 3. Execute Orchestration
 
@@ -65,6 +79,12 @@ Manual governance audit:
 
 ```bash
 agentteams audit --strict
+```
+
+Timeline visibility:
+
+```bash
+agentteams audit --verbose
 ```
 
 ## 5. Repository Validation

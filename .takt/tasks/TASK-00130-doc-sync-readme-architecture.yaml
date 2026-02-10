@@ -30,6 +30,31 @@ flags:
   docs_required: true
   research_required: false
 warnings: []
+declarations:
+- at: '2026-02-07T03:00:00Z'
+  team: coordinator
+  role: coordinator
+  action: triage
+  what: assign documentation path and review order
+  controlled_by:
+  - "piece:agentteams-governance"
+  - "flags"
+- at: '2026-02-07T03:00:00Z'
+  team: documentation-guild
+  role: api-spec-owner
+  action: handoff_to_tech_writer
+  what: OpenAPI changes passed to technical writer
+  controlled_by:
+  - "handoff"
+  - "policy:docs-review"
+- at: '2026-02-07T03:15:00Z'
+  team: documentation-guild
+  role: tech-writer
+  action: handoff_to_code_critic
+  what: guide and README updates sent for QA review
+  controlled_by:
+  - "handoff"
+  - "policy:qa-review"
 handoffs:
 - from: documentation-guild/api-spec-owner
   to: documentation-guild/tech-writer

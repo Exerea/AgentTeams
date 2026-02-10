@@ -13,6 +13,19 @@ Required fields:
 - acceptance
 - flags
 - warnings
+- declarations
 - handoffs
 - notes
 - updated_at
+
+Declaration item fields:
+- at (UTC timestamp, YYYY-MM-DDTHH:MM:SSZ)
+- team
+- role
+- action
+- what
+- controlled_by (non-empty list)
+
+Declaration policy:
+- include an initial coordinator triage declaration
+- keep declarations and handoffs aligned by phase

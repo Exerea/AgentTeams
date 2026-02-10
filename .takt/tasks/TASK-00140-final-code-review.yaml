@@ -30,6 +30,23 @@ flags:
   docs_required: true
   research_required: false
 warnings: []
+declarations:
+- at: '2026-02-07T03:15:00Z'
+  team: coordinator
+  role: coordinator
+  action: triage
+  what: assign final QA and documentation reviewers
+  controlled_by:
+  - "piece:agentteams-governance"
+  - "flags"
+- at: '2026-02-07T03:15:00Z'
+  team: documentation-guild
+  role: tech-writer
+  action: handoff_to_code_critic
+  what: documentation package sent to QA final review
+  controlled_by:
+  - "handoff"
+  - "policy:qa-review"
 handoffs:
 - from: documentation-guild/tech-writer
   to: qa-review-guild/code-critic

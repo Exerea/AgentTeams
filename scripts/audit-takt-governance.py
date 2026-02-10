@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
@@ -34,6 +35,19 @@ def team_of(role_ref: object) -> str:
     return value
 
 
+def to_sortable_iso(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "9999-12-31T23:59:59Z"
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return raw
+
+
 def required_teams(task: dict) -> set[str]:
     flags = task.get("flags") if isinstance(task.get("flags"), dict) else {}
     required = {"coordinator"}
@@ -52,6 +66,14 @@ def required_teams(task: dict) -> set[str]:
 
 def observed_teams(task: dict) -> set[str]:
     observed: set[str] = {"coordinator"}
+    declarations = task.get("declarations") if isinstance(task.get("declarations"), list) else []
+    for entry in declarations:
+        if not isinstance(entry, dict):
+            continue
+        team = team_of(entry.get("team"))
+        if team:
+            observed.add(team)
+
     handoffs = task.get("handoffs") if isinstance(task.get("handoffs"), list) else []
     for entry in handoffs:
         if not isinstance(entry, dict):
@@ -63,6 +85,45 @@ def observed_teams(task: dict) -> set[str]:
         if dst:
             observed.add(dst)
     return observed
+
+
+def timeline_entries(task: dict) -> list[tuple[str, str]]:
+    entries: list[tuple[str, str]] = []
+
+    declarations = task.get("declarations") if isinstance(task.get("declarations"), list) else []
+    for entry in declarations:
+        if not isinstance(entry, dict):
+            continue
+        at = str(entry.get("at") or "")
+        team = str(entry.get("team") or "").strip()
+        role = str(entry.get("role") or "").strip()
+        action = str(entry.get("action") or "").strip()
+        what = str(entry.get("what") or "").strip()
+        controls = entry.get("controlled_by") if isinstance(entry.get("controlled_by"), list) else []
+        controls_text = ",".join(str(v) for v in controls) if controls else "-"
+        entries.append(
+            (
+                to_sortable_iso(at),
+                f"DECLARE team={team} role={role} action={action} what={what} controlled_by={controls_text}",
+            )
+        )
+
+    handoffs = task.get("handoffs") if isinstance(task.get("handoffs"), list) else []
+    for entry in handoffs:
+        if not isinstance(entry, dict):
+            continue
+        at = str(entry.get("at") or "")
+        src = str(entry.get("from") or "").strip()
+        dst = str(entry.get("to") or "").strip()
+        memo = str(entry.get("memo") or "").strip()
+        entries.append(
+            (
+                to_sortable_iso(at),
+                f"HANDOFF from={src} to={dst} memo={memo}",
+            )
+        )
+
+    return sorted(entries, key=lambda item: item[0])
 
 
 def main() -> int:
@@ -87,12 +148,12 @@ def main() -> int:
     for task_file in files:
         task = load_yaml(task_file)
         task_id = str(task.get("id") or task_file.stem)
-        status = str(task.get("status") or "")
+        declarations = task.get("declarations") if isinstance(task.get("declarations"), list) else []
 
-        if status == "todo":
-            if args.verbose:
-                print(f"INFO [AUDIT_SKIP] task={task_id} status=todo")
-            continue
+        if len(declarations) == 0:
+            warnings.append(
+                f"WARN [AUDIT_DECLARATION_MISSING] task={task_id} declarations are empty"
+            )
 
         expected = required_teams(task)
         observed = observed_teams(task)
@@ -112,6 +173,8 @@ def main() -> int:
             print(
                 f"INFO [AUDIT_TASK] task={task_id} expected={sorted(expected)} observed={sorted(observed)}"
             )
+            for at, detail in timeline_entries(task):
+                print(f"INFO [AUDIT_TIMELINE] task={task_id} at={at} {detail}")
 
     log_files = [p for p in logs_dir.glob("*") if p.is_file()]
     if not log_files:

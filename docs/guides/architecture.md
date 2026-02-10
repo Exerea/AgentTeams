@@ -9,6 +9,7 @@ AgentTeams v4 is a TAKT-first orchestration architecture with a single execution
 - One runtime authority: `.takt/`
 - One task authority: `.takt/tasks/TASK-*.yaml`
 - One governance piece: `.takt/pieces/agentteams-governance.yaml`
+- One declaration authority: task `declarations` + `handoffs`
 - No runtime fallback to legacy operation
 
 ## Topology
@@ -39,12 +40,14 @@ AgentTeams v4 is a TAKT-first orchestration architecture with a single execution
 ## Execution Flow
 
 1. `agentteams orchestrate --task-file .takt/tasks/TASK-*.yaml`
-2. `at.py` compiles task payload into TAKT prompt input.
+2. `at.py` compiles task payload, including declaration timeline, into TAKT prompt input.
 3. TAKT executes `.takt/pieces/agentteams-governance.yaml`.
-4. Post validation runs:
+4. During and after execution, each team intent/handoff is recorded in task `declarations` and `handoffs`.
+5. Post validation runs:
    - `validate-takt-task.py`
    - `validate-takt-evidence.py`
-5. Governance audit is available through `agentteams audit`.
+6. Governance audit is available through `agentteams audit`.
+7. Use `agentteams audit --verbose` to print per-task chronological declaration/handoff lines.
 
 ## Governance Distribution Model
 

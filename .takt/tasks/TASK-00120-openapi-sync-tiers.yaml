@@ -30,6 +30,31 @@ flags:
   docs_required: true
   research_required: false
 warnings: []
+declarations:
+- at: '2026-02-07T02:45:00Z'
+  team: coordinator
+  role: coordinator
+  action: triage
+  what: assign documentation owner for OpenAPI synchronization
+  controlled_by:
+  - "piece:agentteams-governance"
+  - "flags"
+- at: '2026-02-07T02:45:00Z'
+  team: backend
+  role: security-expert
+  action: handoff_to_api_spec_owner
+  what: security notes delivered to api spec owner
+  controlled_by:
+  - "handoff"
+  - "policy:security-review"
+- at: '2026-02-07T03:00:00Z'
+  team: documentation-guild
+  role: api-spec-owner
+  action: handoff_to_tech_writer
+  what: OpenAPI update handed to technical writer
+  controlled_by:
+  - "handoff"
+  - "policy:docs-review"
 handoffs:
 - from: backend/security-expert
   to: documentation-guild/api-spec-owner

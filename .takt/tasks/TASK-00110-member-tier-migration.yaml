@@ -30,6 +30,47 @@ flags:
   docs_required: true
   research_required: false
 warnings: []
+declarations:
+- at: '2026-02-07T02:20:00Z'
+  team: coordinator
+  role: coordinator
+  action: triage
+  what: assign backend and documentation reviewers based on flags
+  controlled_by:
+  - "piece:agentteams-governance"
+  - "flags"
+- at: '2026-02-07T02:20:00Z'
+  team: documentation-guild
+  role: adr-manager
+  action: handoff_to_db_specialist
+  what: handoff to backend/db-specialist after ADR approval
+  controlled_by:
+  - "handoff"
+  - "policy:handoff"
+- at: '2026-02-07T02:40:00Z'
+  team: backend
+  role: db-specialist
+  action: handoff_to_backend_security
+  what: backend migration implementation sent to security reviewer
+  controlled_by:
+  - "handoff"
+  - "policy:security-review"
+- at: '2026-02-07T02:45:00Z'
+  team: backend
+  role: security-expert
+  action: handoff_to_api_spec_owner
+  what: security review complete and handed to api spec owner
+  controlled_by:
+  - "handoff"
+  - "policy:security-review"
+- at: '2026-02-07T02:50:00Z'
+  team: documentation-guild
+  role: api-spec-owner
+  action: handoff_to_code_critic
+  what: OpenAPI sync complete and sent to QA review
+  controlled_by:
+  - "handoff"
+  - "policy:qa-review"
 handoffs:
 - from: documentation-guild/adr-manager
   to: backend/db-specialist

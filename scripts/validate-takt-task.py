@@ -25,6 +25,7 @@ REQUIRED_KEYS = [
     "acceptance",
     "flags",
     "warnings",
+    "declarations",
     "handoffs",
     "notes",
     "updated_at",
@@ -36,6 +37,7 @@ FLAG_KEYS = [
     "docs_required",
     "research_required",
 ]
+DECLARATION_KEYS = ["at", "team", "role", "action", "what", "controlled_by"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -78,7 +80,7 @@ def validate_task(path: Path) -> list[str]:
     if not isinstance(task["goal"], str):
         errors.append(f"{path.as_posix()}: goal must be a string")
 
-    for list_key in ["constraints", "acceptance", "warnings", "handoffs"]:
+    for list_key in ["constraints", "acceptance", "warnings", "declarations", "handoffs"]:
         if not isinstance(task[list_key], list):
             errors.append(f"{path.as_posix()}: {list_key} must be a list")
 
@@ -96,6 +98,50 @@ def validate_task(path: Path) -> list[str]:
     updated_at = str(task["updated_at"])
     if not TIMESTAMP_PATTERN.fullmatch(updated_at):
         errors.append(f"{path.as_posix()}: updated_at must match YYYY-MM-DDTHH:MM:SSZ")
+
+    declarations = task["declarations"]
+    if isinstance(declarations, list):
+        for index, declaration in enumerate(declarations):
+            if not isinstance(declaration, dict):
+                errors.append(
+                    f"{path.as_posix()}: declarations[{index}] must be a map"
+                )
+                continue
+
+            for key in DECLARATION_KEYS:
+                if key not in declaration:
+                    errors.append(
+                        f"{path.as_posix()}: declarations[{index}].{key} is required"
+                    )
+
+            if "at" in declaration:
+                at = str(declaration["at"])
+                if not TIMESTAMP_PATTERN.fullmatch(at):
+                    errors.append(
+                        f"{path.as_posix()}: declarations[{index}].at must match YYYY-MM-DDTHH:MM:SSZ"
+                    )
+
+            for key in ["team", "role", "action", "what"]:
+                if key in declaration and (
+                    not isinstance(declaration[key], str)
+                    or not str(declaration[key]).strip()
+                ):
+                    errors.append(
+                        f"{path.as_posix()}: declarations[{index}].{key} must be a non-empty string"
+                    )
+
+            if "controlled_by" in declaration:
+                controls = declaration["controlled_by"]
+                if not isinstance(controls, list) or len(controls) == 0:
+                    errors.append(
+                        f"{path.as_posix()}: declarations[{index}].controlled_by must be a non-empty list"
+                    )
+                else:
+                    for ctrl_idx, control in enumerate(controls):
+                        if not isinstance(control, str) or not control.strip():
+                            errors.append(
+                                f"{path.as_posix()}: declarations[{index}].controlled_by[{ctrl_idx}] must be a non-empty string"
+                            )
 
     return errors
 

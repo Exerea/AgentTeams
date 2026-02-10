@@ -26,6 +26,54 @@ def load_yaml(path: Path) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def team_of(role_ref: object) -> str:
+    value = str(role_ref or "").strip()
+    if "/" in value:
+        return value.split("/", 1)[0].strip()
+    return value
+
+
+def required_teams(task: dict) -> set[str]:
+    flags = task.get("flags") if isinstance(task.get("flags"), dict) else {}
+    required = {"coordinator"}
+    if bool(flags.get("qa_required", False)):
+        required.add("qa-review-guild")
+    if bool(flags.get("security_required", False)):
+        required.add("backend")
+    if bool(flags.get("ux_required", False)):
+        required.add("frontend")
+    if bool(flags.get("docs_required", False)):
+        required.add("documentation-guild")
+    if bool(flags.get("research_required", False)):
+        required.add("innovation-research-guild")
+    return required
+
+
+def declared_teams(task: dict) -> set[str]:
+    teams: set[str] = set()
+
+    declarations = task.get("declarations") if isinstance(task.get("declarations"), list) else []
+    for entry in declarations:
+        if not isinstance(entry, dict):
+            continue
+        team = team_of(entry.get("team"))
+        if team:
+            teams.add(team)
+
+    handoffs = task.get("handoffs") if isinstance(task.get("handoffs"), list) else []
+    for entry in handoffs:
+        if not isinstance(entry, dict):
+            continue
+        src = team_of(entry.get("from"))
+        dst = team_of(entry.get("to"))
+        if src:
+            teams.add(src)
+        if dst:
+            teams.add(dst)
+
+    return teams
+
+
 def main() -> int:
     args = parse_args()
     root = Path.cwd()
@@ -47,6 +95,22 @@ def main() -> int:
         task = load_yaml(task_file)
         status = str(task.get("status") or "")
         handoffs = task.get("handoffs") if isinstance(task.get("handoffs"), list) else []
+        declarations = task.get("declarations") if isinstance(task.get("declarations"), list) else []
+        expected = required_teams(task)
+        observed = declared_teams(task)
+
+        if status in {"in_progress", "in_review", "blocked", "done"} and len(declarations) == 0:
+            evidence_errors.append(
+                f"{task_file.as_posix()}: status={status} requires at least one declaration"
+            )
+
+        if status in {"in_review", "done"}:
+            missing = sorted(expected - observed)
+            if missing:
+                evidence_errors.append(
+                    f"{task_file.as_posix()}: missing declared teams for status={status}: {','.join(missing)}"
+                )
+
         if status in {"in_review", "done"} and len(handoffs) == 0:
             evidence_errors.append(
                 f"{task_file.as_posix()}: status={status} requires at least one handoff evidence"

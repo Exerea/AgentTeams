@@ -83,10 +83,22 @@ flags:
   docs_required: true
   research_required: false
 warnings: []
+declarations:
+  - at: 2026-02-10T00:00:00Z
+    team: coordinator
+    role: coordinator
+    action: triage
+    what: "decompose task and assign required teams"
+    controlled_by:
+      - "piece:agentteams-governance"
+      - "flags"
 handoffs: []
 notes: ""
 updated_at: 2026-02-10T00:00:00Z
 ```
+
+`declarations` is the canonical "who does what" contract for handoff visibility.
+Use `agentteams audit --verbose` to inspect chronological declarations/handoffs per task.
 
 ## Validation
 

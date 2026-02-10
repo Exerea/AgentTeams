@@ -30,6 +30,23 @@ flags:
   docs_required: true
   research_required: false
 warnings: []
+declarations:
+- at: '2026-02-07T02:00:00Z'
+  team: coordinator
+  role: coordinator
+  action: triage
+  what: initial routing and delegation for this task
+  controlled_by:
+  - "piece:agentteams-governance"
+  - "flags"
+- at: '2026-02-07T02:20:00Z'
+  team: documentation-guild
+  role: adr-manager
+  action: handoff_to_db_specialist
+  what: handoff to backend/db-specialist after ADR gate
+  controlled_by:
+  - "handoff"
+  - "policy:handoff"
 handoffs:
 - from: coordinator
   to: documentation-guild/adr-manager
