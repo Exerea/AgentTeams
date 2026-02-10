@@ -54,6 +54,38 @@ jobs:
         run: |
           python scripts/validate-takt-evidence.py --allow-empty-logs
 
+  validate-control-plane-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyyaml
+      - name: Validate control-plane schema
+        run: |
+          python scripts/validate-control-plane-schema.py --path .takt/control-plane
+
+  validate-intake-pr-paths:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Validate intake path guard
+        run: |
+          python scripts/validate-intake-pr-paths.py \
+            --base-ref "${{ github.event.pull_request.base.sha }}" \
+            --head-ref "${{ github.event.pull_request.head.sha }}" \
+            --allow-no-intake-changes
+
   orchestrate-smoke-mock:
     runs-on: ubuntu-latest
     steps:

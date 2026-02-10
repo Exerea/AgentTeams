@@ -1,0 +1,104 @@
+refresh_id: R-20260210T041108Z
+created_at: '2026-02-10T04:11:08Z'
+source: auto-detect
+status: pending_review
+findings:
+  incidents:
+  - fingerprint: fp-001
+    project_count: 3
+    threshold: 3
+    status: recurring
+  overload_candidates:
+  - project_id: payments-api
+    repo: github.com/Exerea/PaymentsAPI
+    max_responsibility_overlap_ratio: 0.37
+    capabilities_for_new_team: &id001
+    - security-review
+    - api-docs
+    proposed_transfer_from_existing: *id001
+  - project_id: storefront-web
+    repo: github.com/Exerea/StorefrontWeb
+    max_responsibility_overlap_ratio: 0.39
+    capabilities_for_new_team: &id002
+    - docs-sync
+    - ux-review
+    proposed_transfer_from_existing: *id002
+actions:
+  team_catalog_updates:
+  - team_id: team-payments-api-security-review-api-docs
+    mission: specialized team carved out from overload candidate payments-api
+    owned_capabilities:
+    - security-review
+    - api-docs
+    slo_targets:
+      queue_p95_hours: 24
+      lead_time_p50_hours: 48
+    persona_ref: .takt/personas/implementer.md
+    policy_refs:
+    - .takt/policies/governance.md
+    - .takt/policies/quality.md
+    skill_refs:
+    - skill-payments-api-security-review-api-docs
+    active: false
+    source_refresh_id: R-20260210T041108Z
+  - team_id: team-storefront-web-docs-sync-ux-review
+    mission: specialized team carved out from overload candidate storefront-web
+    owned_capabilities:
+    - docs-sync
+    - ux-review
+    slo_targets:
+      queue_p95_hours: 24
+      lead_time_p50_hours: 48
+    persona_ref: .takt/personas/implementer.md
+    policy_refs:
+    - .takt/policies/governance.md
+    - .takt/policies/quality.md
+    skill_refs:
+    - skill-storefront-web-docs-sync-ux-review
+    active: false
+    source_refresh_id: R-20260210T041108Z
+  routing_rule_updates:
+  - rule_id: incident-fp-001
+    when:
+      incident_fingerprint: fp-001
+    require_teams:
+    - coordinator
+    - qa-review-guild
+    require_skills:
+    - skill-qa-regression-trace
+    priority: 70
+    enabled: false
+    source_refresh_id: R-20260210T041108Z
+  skill_updates:
+  - skill_id: skill-payments-api-security-review-api-docs
+    description: specialized execution skill for payments-api overload split
+    applies_to_teams:
+    - team-payments-api-security-review-api-docs
+    trigger:
+      capability_tags:
+      - security-review
+      - api-docs
+    instruction_ref: .takt/skills/skill-payments-api-security-review-api-docs.md
+    policy_refs:
+    - .takt/policies/governance.md
+    - .takt/policies/quality.md
+    evidence_requirements:
+    - declarations controlled_by must include skill:skill-payments-api-security-review-api-docs
+    enabled: false
+    source_refresh_id: R-20260210T041108Z
+  - skill_id: skill-storefront-web-docs-sync-ux-review
+    description: specialized execution skill for storefront-web overload split
+    applies_to_teams:
+    - team-storefront-web-docs-sync-ux-review
+    trigger:
+      capability_tags:
+      - docs-sync
+      - ux-review
+    instruction_ref: .takt/skills/skill-storefront-web-docs-sync-ux-review.md
+    policy_refs:
+    - .takt/policies/governance.md
+    - .takt/policies/quality.md
+    evidence_requirements:
+    - declarations controlled_by must include skill:skill-storefront-web-docs-sync-ux-review
+    enabled: false
+    source_refresh_id: R-20260210T041108Z

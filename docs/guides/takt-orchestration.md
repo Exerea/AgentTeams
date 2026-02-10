@@ -1,6 +1,6 @@
-# TAKT Orchestration Guide (v4 Canonical)
+# TAKT Orchestration Guide (v5 Canonical)
 
-This is the only supported orchestration flow in AgentTeams v4.
+This is the supported orchestration flow in AgentTeams v5.
 
 ## 1. Validate Environment
 
@@ -13,7 +13,9 @@ Doctor checks:
 - git repository context
 - `takt` command availability
 - governance piece presence
-- `.takt/tasks/TASK-*.yaml` validity
+- local task schema validity
+- control-plane schema validity
+- intake template/workflow presence
 
 ## 2. Prepare Task File
 
@@ -34,6 +36,15 @@ flags:
   ux_required: false
   docs_required: true
   research_required: false
+routing:
+  required_teams:
+    - coordinator
+    - documentation-guild
+    - qa-review-guild
+  capability_tags:
+    - final-review
+    - docs-sync
+    - qa-review
 warnings: []
 declarations:
   - at: 2026-02-10T00:00:00Z
@@ -43,16 +54,18 @@ declarations:
     what: "decompose task and assign required teams"
     controlled_by:
       - "piece:agentteams-governance"
-      - "flags"
+      - "rule:default-routing"
+      - "skill:skill-routing-governance"
 handoffs: []
 notes: ""
 updated_at: 2026-02-10T00:00:00Z
 ```
 
 Declaration policy:
-- `declarations` must explicitly state who will do what before or at each handoff.
+
+- `declarations` must explicitly state who does what before/at each handoff.
 - First declaration should be coordinator triage.
-- Validation fails when required declaration structure is missing.
+- In review/done phases, declarations should contain `rule:<rule_id>` and `skill:<skill_id>` evidence.
 
 ## 3. Execute Orchestration
 
@@ -75,19 +88,35 @@ If post-validation is enabled, CLI runs:
 - `scripts/validate-takt-task.py`
 - `scripts/validate-takt-evidence.py`
 
-Manual governance audit:
+Manual governance audits:
 
 ```bash
-agentteams audit --strict
+agentteams audit --scope local --strict
+agentteams audit --scope fleet --strict
 ```
 
 Timeline visibility:
 
 ```bash
-agentteams audit --verbose
+agentteams audit --scope local --verbose
 ```
 
-## 5. Repository Validation
+## 5. Fleet Intake and Refresh
+
+Project repositories should use metadata-only intake and bot PR submission:
+
+- template: `templates/workflows/agentteams-export-metadata.yml`
+- destination: `.takt/control-plane/intake/<project_id>/YYYYMMDDTHHMMSSZ.yaml`
+
+Refresh detection is event-driven:
+
+- trigger: intake update only (`push` on `.takt/control-plane/intake/**`)
+- central-only guard vars:
+  - `AGENTTEAMS_CONTROL_PLANE_ENABLED=true`
+  - `AGENTTEAMS_CONTROL_PLANE_MODE=hub`
+- no periodic schedule required
+
+## 6. Repository Validation
 
 Linux:
 
@@ -103,7 +132,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1
 
 ## Command Deprecation
 
-The following commands are intentionally removed in v4 and return discontinued errors:
+The following commands are intentionally removed in v5 and return discontinued errors:
 
 - `agentteams sync`
 - `agentteams report-incident`

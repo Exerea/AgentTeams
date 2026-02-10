@@ -4,3 +4,8 @@ provider: codex
 interactive_preview_movements: 2
 pipeline:
   default_branch_prefix: feat/agentteams
+control_plane:
+  enabled: true
+  mode: hub
+  detection_mode: event_driven
+  periodic_schedule: false

@@ -1,0 +1,51 @@
+detected_at: '2026-02-10T04:08:26Z'
+window_days: 14
+overload_candidates:
+- project_id: payments-api
+  repo: github.com/Exerea/PaymentsAPI
+  captured_at: '2026-02-10T00:00:00Z'
+  threshold_hits:
+  - queue_p95_hours>24
+  - lead_time_p50_hours>48
+  - rework_rate>0.25
+  hit_count: 3
+  max_responsibility_overlap_ratio: 0.37
+  top_overlaps:
+  - capability: security-review
+    responsibility_overlap_ratio: 0.37
+  - capability: api-docs
+    responsibility_overlap_ratio: 0.28
+  is_overload_candidate: true
+  is_split_triggered: true
+- project_id: storefront-web
+  repo: github.com/Exerea/StorefrontWeb
+  captured_at: '2026-02-10T00:00:00Z'
+  threshold_hits:
+  - queue_p95_hours>24
+  - lead_time_p50_hours>48
+  - rework_rate>0.25
+  - blocked_ratio>0.20
+  hit_count: 4
+  max_responsibility_overlap_ratio: 0.39
+  top_overlaps:
+  - capability: docs-sync
+    responsibility_overlap_ratio: 0.39
+  - capability: ux-review
+    responsibility_overlap_ratio: 0.36
+  is_overload_candidate: true
+  is_split_triggered: true
+split_candidates:
+- project_id: payments-api
+  repo: github.com/Exerea/PaymentsAPI
+  max_responsibility_overlap_ratio: 0.37
+  capabilities_for_new_team: &id001
+  - security-review
+  - api-docs
+  proposed_transfer_from_existing: *id001
+- project_id: storefront-web
+  repo: github.com/Exerea/StorefrontWeb
+  max_responsibility_overlap_ratio: 0.39
+  capabilities_for_new_team: &id002
+  - docs-sync
+  - ux-review
+  proposed_transfer_from_existing: *id002

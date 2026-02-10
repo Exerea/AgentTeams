@@ -11,12 +11,17 @@ Required fields:
 - goal
 - constraints
 - acceptance
-- flags
+- flags (legacy-compatible until 2026-06-30)
+- routing (v5 canonical)
 - warnings
 - declarations
 - handoffs
 - notes
 - updated_at
+
+Routing fields:
+- required_teams (non-empty list)
+- capability_tags (list)
 
 Declaration item fields:
 - at (UTC timestamp, YYYY-MM-DDTHH:MM:SSZ)
@@ -29,3 +34,4 @@ Declaration item fields:
 Declaration policy:
 - include an initial coordinator triage declaration
 - keep declarations and handoffs aligned by phase
+- include `rule:<rule_id>` and `skill:<skill_id>` evidence in controlled_by

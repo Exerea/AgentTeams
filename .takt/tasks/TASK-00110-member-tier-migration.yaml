@@ -29,6 +29,17 @@ flags:
   ux_required: false
   docs_required: true
   research_required: false
+routing:
+  required_teams:
+  - coordinator
+  - backend
+  - documentation-guild
+  - qa-review-guild
+  capability_tags:
+  - backend-implementation
+  - security-review
+  - api-docs
+  - qa-review
 warnings: []
 declarations:
 - at: '2026-02-07T02:20:00Z'
@@ -39,6 +50,8 @@ declarations:
   controlled_by:
   - "piece:agentteams-governance"
   - "flags"
+  - "rule:default-routing"
+  - "skill:skill-routing-governance"
 - at: '2026-02-07T02:20:00Z'
   team: documentation-guild
   role: adr-manager
@@ -47,6 +60,8 @@ declarations:
   controlled_by:
   - "handoff"
   - "policy:handoff"
+  - "rule:docs-required"
+  - "skill:skill-docs-synchronization"
 - at: '2026-02-07T02:40:00Z'
   team: backend
   role: db-specialist
@@ -55,6 +70,8 @@ declarations:
   controlled_by:
   - "handoff"
   - "policy:security-review"
+  - "rule:security-required"
+  - "skill:skill-backend-security-review"
 - at: '2026-02-07T02:45:00Z'
   team: backend
   role: security-expert
@@ -63,6 +80,8 @@ declarations:
   controlled_by:
   - "handoff"
   - "policy:security-review"
+  - "rule:security-required"
+  - "skill:skill-backend-security-review"
 - at: '2026-02-07T02:50:00Z'
   team: documentation-guild
   role: api-spec-owner
@@ -71,6 +90,8 @@ declarations:
   controlled_by:
   - "handoff"
   - "policy:qa-review"
+  - "rule:qa-required"
+  - "skill:skill-qa-regression-trace"
 handoffs:
 - from: documentation-guild/adr-manager
   to: backend/db-specialist

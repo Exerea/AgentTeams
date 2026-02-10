@@ -1,12 +1,14 @@
-# AgentTeams v4 (TAKT-Only Runtime)
+# AgentTeams v5 (TAKT-Only + Control Plane)
 
-AgentTeams v4 is a destructive migration to a single runtime source of truth based on TAKT.
+AgentTeams v5 keeps TAKT as the only runtime and adds a metadata-only fleet
+control plane for cross-project detection and self-refresh proposals.
 
 ## Runtime Model
 
 - Canonical runtime: `TAKT only`
 - Canonical task source: `.takt/tasks/TASK-*.yaml`
 - Canonical orchestration piece: `.takt/pieces/agentteams-governance.yaml`
+- Fleet control plane: `.takt/control-plane/`
 - Legacy historical task files: `legacy/codex-states/`
 
 ## CLI
@@ -18,13 +20,19 @@ Supported commands:
 - `agentteams orchestrate`
 - `agentteams audit`
 
+`agentteams audit` scopes:
+
+- Local governance audit: `agentteams audit --scope local --strict`
+- Fleet control-plane audit: `agentteams audit --scope fleet --strict`
+- Default scope is local.
+
 Removed commands:
 
 - `agentteams sync`
 - `agentteams report-incident`
 - `agentteams guard-chat`
 
-Removed commands return an explicit discontinued error in v4.
+Removed commands return an explicit discontinued error in v5.
 
 ## Install Prerequisites
 
@@ -59,13 +67,14 @@ Mock smoke execution:
 agentteams orchestrate --task-file .takt/tasks/TASK-00140-final-code-review.yaml --provider mock --no-post-validate
 ```
 
-### 4. Audit Governance Distribution
+### 4. Audit Local/Fleet Governance
 
 ```bash
-agentteams audit --strict
+agentteams audit --scope local --strict
+agentteams audit --scope fleet --strict
 ```
 
-## Task Schema (v4)
+## Task Schema (v5)
 
 ```yaml
 id: T-00140
@@ -76,12 +85,21 @@ task: |
 goal: ""
 constraints: []
 acceptance: []
-flags:
+flags: # legacy-compatible until 2026-06-30
   qa_required: true
   security_required: false
   ux_required: false
   docs_required: true
   research_required: false
+routing: # canonical for v5+
+  required_teams:
+    - coordinator
+    - documentation-guild
+    - qa-review-guild
+  capability_tags:
+    - final-review
+    - docs-sync
+    - qa-review
 warnings: []
 declarations:
   - at: 2026-02-10T00:00:00Z
@@ -91,14 +109,38 @@ declarations:
     what: "decompose task and assign required teams"
     controlled_by:
       - "piece:agentteams-governance"
-      - "flags"
+      - "rule:default-routing"
+      - "skill:skill-routing-governance"
 handoffs: []
 notes: ""
 updated_at: 2026-02-10T00:00:00Z
 ```
 
-`declarations` is the canonical "who does what" contract for handoff visibility.
-Use `agentteams audit --verbose` to inspect chronological declarations/handoffs per task.
+Compatibility policy:
+
+- `flags` only: allowed until 2026-06-30
+- from 2026-07-01: tasks must define `routing`
+
+## Control Plane Operation
+
+- Intake source: `.takt/control-plane/intake/<project_id>/YYYYMMDDTHHMMSSZ.yaml`
+- Aggregated signals: `.takt/control-plane/signals/latest.yaml`
+- Queue/proposals:
+  - `.takt/control-plane/refresh-queue/R-*.yaml`
+  - `.takt/control-plane/refresh-proposals/RP-*.md`
+- Team/rule/skill catalogs:
+  - `.takt/control-plane/team-catalog/teams.yaml`
+  - `.takt/control-plane/rule-catalog/routing-rules.yaml`
+  - `.takt/control-plane/skill-catalog/skills.yaml`
+
+Detection mode:
+
+- Event-driven only (no periodic schedule required)
+- Triggered only by intake updates (`push` on `.takt/control-plane/intake/**`)
+- Workflow guard variables:
+  - `AGENTTEAMS_CONTROL_PLANE_ENABLED=true`
+  - `AGENTTEAMS_CONTROL_PLANE_MODE=hub`
+- Set these only in the central AgentTeams repository
 
 ## Validation
 
@@ -111,15 +153,18 @@ Main checks:
 
 - `validate-takt-task.py`
 - `validate-takt-evidence.py`
+- `validate-control-plane-schema.py`
 - `validate-doc-consistency.py`
 - `validate-scenarios-structure.py`
 - `validate-secrets.sh/.ps1`
 
-## CI Required Checks (v4)
+## CI Required Checks (v5)
 
 - `validate-takt-task-linux`
 - `validate-takt-task-windows`
 - `validate-takt-evidence-linux`
+- `validate-control-plane-schema`
+- `validate-intake-pr-paths`
 - `orchestrate-smoke-mock`
 - `validate-doc-consistency`
 - `validate-secrets-linux`
@@ -133,4 +178,4 @@ Main checks:
 ## Notes
 
 - Runtime behavior must not depend on assets under `legacy/`.
-- Backward compatibility with pre-v4 operation is intentionally dropped.
+- Fleet control plane stores metadata only; source/session full text is out of scope.

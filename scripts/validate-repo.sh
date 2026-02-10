@@ -15,6 +15,7 @@ fi
 
 "$py_bin" ./scripts/validate-takt-task.py --path .takt/tasks
 "$py_bin" ./scripts/validate-takt-evidence.py --allow-empty-logs
+"$py_bin" ./scripts/validate-control-plane-schema.py --path .takt/control-plane
 "$py_bin" ./scripts/validate-doc-consistency.py
 "$py_bin" ./scripts/validate-scenarios-structure.py
 bash ./scripts/validate-secrets.sh

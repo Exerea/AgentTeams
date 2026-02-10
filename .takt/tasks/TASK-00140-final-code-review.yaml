@@ -29,6 +29,15 @@ flags:
   ux_required: false
   docs_required: true
   research_required: false
+routing:
+  required_teams:
+  - coordinator
+  - documentation-guild
+  - qa-review-guild
+  capability_tags:
+  - final-review
+  - docs-sync
+  - qa-review
 warnings: []
 declarations:
 - at: '2026-02-07T03:15:00Z'
@@ -39,6 +48,8 @@ declarations:
   controlled_by:
   - "piece:agentteams-governance"
   - "flags"
+  - "rule:default-routing"
+  - "skill:skill-routing-governance"
 - at: '2026-02-07T03:15:00Z'
   team: documentation-guild
   role: tech-writer
@@ -47,6 +58,8 @@ declarations:
   controlled_by:
   - "handoff"
   - "policy:qa-review"
+  - "rule:qa-required"
+  - "skill:skill-qa-regression-trace"
 handoffs:
 - from: documentation-guild/tech-writer
   to: qa-review-guild/code-critic

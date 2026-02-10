@@ -1,0 +1,19 @@
+version: 1
+control_plane:
+  enabled: true
+  intake_pr_path: ".takt/control-plane/intake"
+  fleet_detection_mode: "event_driven"
+  periodic_schedule: false
+projects:
+  - project_id: agentteams-core
+    repo: github.com/Exerea/AgentTeams
+    active: true
+    owner: platform
+  - project_id: storefront-web
+    repo: github.com/Exerea/StorefrontWeb
+    active: true
+    owner: ecommerce
+  - project_id: payments-api
+    repo: github.com/Exerea/PaymentsAPI
+    active: true
+    owner: payments

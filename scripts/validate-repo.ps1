@@ -32,6 +32,7 @@ function Invoke-PythonScript {
 try {
   Invoke-PythonScript -ScriptPath .\scripts\validate-takt-task.py -Arguments @('--path', '.takt/tasks')
   Invoke-PythonScript -ScriptPath .\scripts\validate-takt-evidence.py -Arguments @('--allow-empty-logs')
+  Invoke-PythonScript -ScriptPath .\scripts\validate-control-plane-schema.py -Arguments @('--path', '.takt/control-plane')
   Invoke-PythonScript -ScriptPath .\scripts\validate-doc-consistency.py
   Invoke-PythonScript -ScriptPath .\scripts\validate-scenarios-structure.py
 

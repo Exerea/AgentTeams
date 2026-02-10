@@ -17,6 +17,7 @@ REQUIRED_TOKENS = [
     "qa_required",
     "security_required",
     "docs_required",
+    "routing",
 ]
 
 

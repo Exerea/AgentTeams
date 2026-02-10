@@ -29,6 +29,13 @@ flags:
   ux_required: false
   docs_required: true
   research_required: false
+routing:
+  required_teams:
+  - coordinator
+  - documentation-guild
+  capability_tags:
+  - docs-sync
+  - api-docs
 warnings: []
 declarations:
 - at: '2026-02-07T02:45:00Z'
@@ -39,6 +46,8 @@ declarations:
   controlled_by:
   - "piece:agentteams-governance"
   - "flags"
+  - "rule:default-routing"
+  - "skill:skill-routing-governance"
 - at: '2026-02-07T02:45:00Z'
   team: backend
   role: security-expert
@@ -47,6 +56,8 @@ declarations:
   controlled_by:
   - "handoff"
   - "policy:security-review"
+  - "rule:docs-required"
+  - "skill:skill-docs-synchronization"
 - at: '2026-02-07T03:00:00Z'
   team: documentation-guild
   role: api-spec-owner
@@ -55,6 +66,8 @@ declarations:
   controlled_by:
   - "handoff"
   - "policy:docs-review"
+  - "rule:docs-required"
+  - "skill:skill-docs-synchronization"
 handoffs:
 - from: backend/security-expert
   to: documentation-guild/api-spec-owner

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 from __future__ import annotations
 
 import os
@@ -19,6 +19,9 @@ UNIX_COMPAT_CLI = "./at"
 TASK_FILE_PATTERN = "TASK-*.yaml"
 TASK_STATUSES = {"todo", "in_progress", "in_review", "blocked", "done"}
 REMOVED_COMMANDS = {"sync", "report-incident", "guard-chat"}
+CONTROL_PLANE_ROOT = Path(".takt") / "control-plane"
+TEAMS_CATALOG = CONTROL_PLANE_ROOT / "team-catalog" / "teams.yaml"
+SKILLS_CATALOG = CONTROL_PLANE_ROOT / "skill-catalog" / "skills.yaml"
 
 
 def cli_command(command: str, include_compat: bool = False) -> str:
@@ -39,7 +42,7 @@ def usage() -> None:
         "  agentteams orchestrate --task-file <.takt/tasks/TASK-*.yaml> "
         "[--provider codex|claude|mock] [--no-post-validate] [--verbose]"
     )
-    print("  agentteams audit [--min-teams <n>] [--strict] [--verbose]")
+    print("  agentteams audit [--scope local|fleet] [--min-teams <n>] [--strict] [--verbose]")
     print("Compatibility aliases:")
     print("  at <same-subcommand> ...")
 
@@ -317,6 +320,25 @@ def doctor(verbose: bool) -> int:
     if code != 0:
         return code
 
+    control_plane = repo_root / CONTROL_PLANE_ROOT
+    if not control_plane.exists():
+        return fail("CONTROL_PLANE_MISSING", f"missing control-plane root: {control_plane.as_posix()}")
+    print(f"OK [CONTROL_PLANE_FOUND] {control_plane.as_posix()}")
+
+    code = run_python_script(repo_root, "scripts/validate-control-plane-schema.py", ["--path", ".takt/control-plane"])
+    if code != 0:
+        return code
+
+    fleet_workflow = repo_root / ".github" / "workflows" / "fleet-detect-refresh.yml"
+    if not fleet_workflow.exists():
+        return fail("CONTROL_PLANE_WORKFLOW_MISSING", f"missing workflow: {fleet_workflow.as_posix()}")
+    print(f"OK [CONTROL_PLANE_WORKFLOW_OK] found: {fleet_workflow.as_posix()}")
+
+    export_template = repo_root / "templates" / "workflows" / "agentteams-export-metadata.yml"
+    if not export_template.exists():
+        return fail("INTAKE_TEMPLATE_MISSING", f"missing intake template: {export_template.as_posix()}")
+    print(f"OK [INTAKE_TEMPLATE_OK] found: {export_template.as_posix()}")
+
     info(verbose, "doctor checks completed")
     return 0
 
@@ -331,7 +353,127 @@ def require_yaml() -> int:
     )
 
 
-def compile_orchestration_prompt(task_file: Path, task: dict) -> str:
+def load_yaml_map(path: Path) -> dict:
+    if yaml is None or not path.exists():
+        return {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return data if isinstance(data, dict) else {}
+
+
+def teams_from_flags(flags: object) -> list[str]:
+    required = ["coordinator"]
+    if not isinstance(flags, dict):
+        return required
+    if bool(flags.get("qa_required", False)):
+        required.append("qa-review-guild")
+    if bool(flags.get("security_required", False)):
+        required.append("backend")
+    if bool(flags.get("ux_required", False)):
+        required.append("frontend")
+    if bool(flags.get("docs_required", False)):
+        required.append("documentation-guild")
+    if bool(flags.get("research_required", False)):
+        required.append("innovation-research-guild")
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for team in required:
+        if team and team not in seen:
+            seen.add(team)
+            ordered.append(team)
+    return ordered
+
+
+def resolve_required_teams(task: dict) -> list[str]:
+    routing = task.get("routing")
+    if isinstance(routing, dict):
+        teams = routing.get("required_teams")
+        if isinstance(teams, list):
+            normalized: list[str] = []
+            seen: set[str] = set()
+            for item in teams:
+                team = str(item or "").strip()
+                if team and team not in seen:
+                    seen.add(team)
+                    normalized.append(team)
+            if normalized:
+                return normalized
+    return teams_from_flags(task.get("flags"))
+
+
+def resolve_capability_tags(task: dict) -> list[str]:
+    routing = task.get("routing")
+    if isinstance(routing, dict):
+        tags = routing.get("capability_tags")
+        if isinstance(tags, list):
+            normalized: list[str] = []
+            seen: set[str] = set()
+            for item in tags:
+                tag = str(item or "").strip()
+                if tag and tag not in seen:
+                    seen.add(tag)
+                    normalized.append(tag)
+            return normalized
+    return []
+
+
+def resolve_active_team_descriptions(repo_root: Path, required_teams: list[str]) -> list[str]:
+    catalog_path = repo_root / TEAMS_CATALOG
+    catalog = load_yaml_map(catalog_path)
+    teams = catalog.get("teams") if isinstance(catalog.get("teams"), list) else []
+    team_map: dict[str, dict] = {}
+    for item in teams:
+        if not isinstance(item, dict):
+            continue
+        team_id = str(item.get("team_id") or "").strip()
+        if team_id:
+            team_map[team_id] = item
+
+    descriptions: list[str] = []
+    for team_id in required_teams:
+        entry = team_map.get(team_id)
+        if not isinstance(entry, dict):
+            descriptions.append(f"{team_id}: (catalog entry missing)")
+            continue
+        mission = str(entry.get("mission") or "").strip()
+        if mission:
+            descriptions.append(f"{team_id}: {mission}")
+        else:
+            descriptions.append(f"{team_id}: (mission missing)")
+    return descriptions
+
+
+def resolve_active_skills(repo_root: Path, required_teams: list[str], capability_tags: list[str]) -> list[dict]:
+    catalog_path = repo_root / SKILLS_CATALOG
+    catalog = load_yaml_map(catalog_path)
+    skills = catalog.get("skills") if isinstance(catalog.get("skills"), list) else []
+
+    teams_set = set(required_teams)
+    tags_set = set(capability_tags)
+    selected: list[dict] = []
+    seen: set[str] = set()
+
+    for skill in skills:
+        if not isinstance(skill, dict):
+            continue
+        skill_id = str(skill.get("skill_id") or "").strip()
+        if not skill_id or skill_id in seen:
+            continue
+        if not bool(skill.get("enabled", False)):
+            continue
+
+        applies = skill.get("applies_to_teams")
+        applies_set = {str(v).strip() for v in applies} if isinstance(applies, list) else set()
+        trigger = skill.get("trigger") if isinstance(skill.get("trigger"), dict) else {}
+        trigger_tags = trigger.get("capability_tags")
+        trigger_set = {str(v).strip() for v in trigger_tags} if isinstance(trigger_tags, list) else set()
+
+        if teams_set.intersection(applies_set) or tags_set.intersection(trigger_set):
+            selected.append(skill)
+            seen.add(skill_id)
+    return selected
+
+
+def compile_orchestration_prompt(task_file: Path, task: dict, repo_root: Path) -> str:
     def as_list(values: object) -> list[str]:
         if isinstance(values, list):
             return [str(v) for v in values]
@@ -347,8 +489,12 @@ def compile_orchestration_prompt(task_file: Path, task: dict) -> str:
         return out
 
     flags = task.get("flags") if isinstance(task.get("flags"), dict) else {}
+    required_teams = resolve_required_teams(task)
+    capability_tags = resolve_capability_tags(task)
+    active_team_descriptions = resolve_active_team_descriptions(repo_root, required_teams)
+    active_skills = resolve_active_skills(repo_root, required_teams, capability_tags)
     lines = [
-        "You are executing an AgentTeams v4 governance task.",
+        "You are executing an AgentTeams v5 governance task.",
         f"Task file: {task_file.as_posix()}",
         f"Task ID: {task.get('id', '')}",
         f"Title: {task.get('title', '')}",
@@ -386,6 +532,39 @@ def compile_orchestration_prompt(task_file: Path, task: dict) -> str:
     ]:
         value = bool(flags.get(key, False)) if isinstance(flags, dict) else False
         lines.append(f"- {key}: {str(value).lower()}")
+
+    lines.append("")
+    lines.append("Routing:")
+    lines.append("- required_teams:")
+    if required_teams:
+        for team in required_teams:
+            lines.append(f"  - {team}")
+    else:
+        lines.append("  - (none)")
+    lines.append("- capability_tags:")
+    if capability_tags:
+        for tag in capability_tags:
+            lines.append(f"  - {tag}")
+    else:
+        lines.append("  - (none)")
+
+    lines.append("")
+    lines.append("Active Teams:")
+    if active_team_descriptions:
+        for item in active_team_descriptions:
+            lines.append(f"- {item}")
+    else:
+        lines.append("- (none)")
+
+    lines.append("")
+    lines.append("Active Skills:")
+    if active_skills:
+        for skill in active_skills:
+            skill_id = str(skill.get("skill_id") or "").strip()
+            description = str(skill.get("description") or "").strip()
+            lines.append(f"- {skill_id}: {description}")
+    else:
+        lines.append("- (none)")
 
     declarations = as_dict_list(task.get("declarations"))
     lines.append("")
@@ -537,7 +716,7 @@ def orchestrate(task_file: str, provider: str, no_post_validate: bool, verbose: 
     if status not in TASK_STATUSES:
         return fail("TAKT_TASK_INVALID", f"invalid status in task file: {status}")
 
-    compiled_prompt = compile_orchestration_prompt(task_path, raw)
+    compiled_prompt = compile_orchestration_prompt(task_path, raw, repo_root)
 
     takt_cmd = resolve_takt_command()
     if takt_cmd is None:
@@ -593,7 +772,8 @@ def orchestrate(task_file: str, provider: str, no_post_validate: bool, verbose: 
     return 0
 
 
-def parse_audit_args(args: list[str]) -> tuple[int, bool, bool, int]:
+def parse_audit_args(args: list[str]) -> tuple[str, int, bool, bool, int]:
+    scope = "local"
     min_teams = 3
     strict = False
     verbose = False
@@ -601,19 +781,37 @@ def parse_audit_args(args: list[str]) -> tuple[int, bool, bool, int]:
     idx = 0
     while idx < len(args):
         token = args[idx]
+        if token == "--scope":
+            if idx + 1 >= len(args):
+                return scope, min_teams, strict, verbose, fail(
+                    "PATH_LAYOUT_INVALID",
+                    "--scope requires a value.",
+                    "Usage: agentteams audit [--scope local|fleet] [--min-teams <n>] [--strict] [--verbose]",
+                )
+            value = args[idx + 1].strip().lower()
+            if value not in {"local", "fleet"}:
+                return scope, min_teams, strict, verbose, fail(
+                    "PATH_LAYOUT_INVALID",
+                    f"invalid --scope value: {value}",
+                    "Allowed values: local | fleet",
+                )
+            scope = value
+            idx += 2
+            continue
+
         if token == "--min-teams":
             if idx + 1 >= len(args):
-                return min_teams, strict, verbose, fail(
+                return scope, min_teams, strict, verbose, fail(
                     "PATH_LAYOUT_INVALID",
                     "--min-teams requires a numeric value.",
-                    "Usage: agentteams audit [--min-teams <n>] [--strict] [--verbose]",
+                    "Usage: agentteams audit [--scope local|fleet] [--min-teams <n>] [--strict] [--verbose]",
                 )
             try:
                 min_teams = int(args[idx + 1])
                 if min_teams <= 0:
                     raise ValueError
             except ValueError:
-                return min_teams, strict, verbose, fail(
+                return scope, min_teams, strict, verbose, fail(
                     "PATH_LAYOUT_INVALID",
                     f"invalid --min-teams value: {args[idx + 1]}",
                     "--min-teams must be an integer >= 1",
@@ -629,16 +827,16 @@ def parse_audit_args(args: list[str]) -> tuple[int, bool, bool, int]:
             idx += 1
             continue
 
-        return min_teams, strict, verbose, fail(
+        return scope, min_teams, strict, verbose, fail(
             "PATH_LAYOUT_INVALID",
             f"unknown option for audit: {token}",
-            "Usage: agentteams audit [--min-teams <n>] [--strict] [--verbose]",
+            "Usage: agentteams audit [--scope local|fleet] [--min-teams <n>] [--strict] [--verbose]",
         )
 
-    return min_teams, strict, verbose, 0
+    return scope, min_teams, strict, verbose, 0
 
 
-def audit(min_teams: int, strict: bool, verbose: bool) -> int:
+def audit(scope: str, min_teams: int, strict: bool, verbose: bool) -> int:
     repo_root = resolve_repo_root()
     if repo_root is None:
         return fail(
@@ -647,11 +845,16 @@ def audit(min_teams: int, strict: bool, verbose: bool) -> int:
             f"Next: {cli_command('init --here', include_compat=True)}",
         )
 
-    script = repo_root / "scripts" / "audit-takt-governance.py"
+    if scope == "fleet":
+        script = repo_root / "scripts" / "audit-fleet-control-plane.py"
+    else:
+        script = repo_root / "scripts" / "audit-takt-governance.py"
     if not script.exists():
         return fail("PATH_LAYOUT_INVALID", f"missing script: {script.as_posix()}")
 
-    cmd = [sys.executable, str(script), "--min-teams", str(min_teams)]
+    cmd = [sys.executable, str(script)]
+    if scope == "local":
+        cmd.extend(["--min-teams", str(min_teams)])
     if strict:
         cmd.append("--strict")
     if verbose:
@@ -697,8 +900,8 @@ def main(argv: list[str]) -> int:
     if command in REMOVED_COMMANDS:
         return fail(
             "LEGACY_COMMAND_REMOVED",
-            f"`{PRIMARY_CLI} {command}` は v4 で廃止済みです。",
-            "利用可能: agentteams init | doctor | orchestrate | audit",
+            f"`{PRIMARY_CLI} {command}` is discontinued in v5.",
+            "Available commands: agentteams init | doctor | orchestrate | audit",
         )
 
     if command not in {"init", "doctor", "orchestrate", "audit"}:
@@ -735,11 +938,12 @@ def main(argv: list[str]) -> int:
             return parse_code
         return orchestrate(task_file, provider, no_post_validate, verbose)
 
-    min_teams, strict, verbose, parse_code = parse_audit_args(command_args)
+    scope, min_teams, strict, verbose, parse_code = parse_audit_args(command_args)
     if parse_code != 0:
         return parse_code
-    return audit(min_teams, strict, verbose)
+    return audit(scope, min_teams, strict, verbose)
 
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
+

@@ -1,0 +1,124 @@
+version: 1
+teams:
+- team_id: coordinator
+  mission: coordinate triage and movement transitions
+  owned_capabilities:
+  - triage
+  - routing
+  - coordination
+  slo_targets:
+    queue_p95_hours: 12
+    lead_time_p50_hours: 24
+  persona_ref: .takt/personas/coordinator.md
+  policy_refs:
+  - .takt/policies/governance.md
+  skill_refs:
+  - skill-routing-governance
+  active: true
+- team_id: backend
+  mission: deliver backend implementation and security hardening
+  owned_capabilities:
+  - backend-implementation
+  - security-review
+  - api-maintenance
+  slo_targets:
+    queue_p95_hours: 24
+    lead_time_p50_hours: 48
+  persona_ref: .takt/personas/implementer.md
+  policy_refs:
+  - .takt/policies/governance.md
+  - .takt/policies/quality.md
+  skill_refs:
+  - skill-backend-security-review
+  active: true
+- team_id: frontend
+  mission: deliver UX-heavy frontend changes with quality controls
+  owned_capabilities:
+  - frontend-implementation
+  - ux-review
+  - usability-validation
+  slo_targets:
+    queue_p95_hours: 24
+    lead_time_p50_hours: 48
+  persona_ref: .takt/personas/implementer.md
+  policy_refs:
+  - .takt/policies/governance.md
+  - .takt/policies/quality.md
+  skill_refs:
+  - skill-ux-regression-review
+  active: true
+- team_id: documentation-guild
+  mission: keep docs and architecture narratives synchronized with changes
+  owned_capabilities:
+  - docs-sync
+  - api-docs
+  - architecture-docs
+  slo_targets:
+    queue_p95_hours: 24
+    lead_time_p50_hours: 48
+  persona_ref: .takt/personas/implementer.md
+  policy_refs:
+  - .takt/policies/quality.md
+  skill_refs:
+  - skill-docs-synchronization
+  active: true
+- team_id: qa-review-guild
+  mission: provide independent QA and regression assessment
+  owned_capabilities:
+  - qa-review
+  - regression-analysis
+  slo_targets:
+    queue_p95_hours: 24
+    lead_time_p50_hours: 36
+  persona_ref: .takt/personas/qa-reviewer.md
+  policy_refs:
+  - .takt/policies/quality.md
+  skill_refs:
+  - skill-qa-regression-trace
+  active: true
+- team_id: innovation-research-guild
+  mission: handle discovery and research-driven tasks
+  owned_capabilities:
+  - research
+  - exploration
+  slo_targets:
+    queue_p95_hours: 24
+    lead_time_p50_hours: 72
+  persona_ref: .takt/personas/implementer.md
+  policy_refs:
+  - .takt/policies/governance.md
+  skill_refs:
+  - skill-research-synthesis
+  active: true
+- team_id: team-payments-api-security-review-api-docs
+  mission: specialized team carved out from overload candidate payments-api
+  owned_capabilities:
+  - security-review
+  - api-docs
+  slo_targets:
+    queue_p95_hours: 24
+    lead_time_p50_hours: 48
+  persona_ref: .takt/personas/implementer.md
+  policy_refs:
+  - .takt/policies/governance.md
+  - .takt/policies/quality.md
+  skill_refs:
+  - skill-payments-api-security-review-api-docs
+  active: false
+  source_refresh_id: R-20260210T040832Z
+- team_id: team-storefront-web-docs-sync-ux-review
+  mission: specialized team carved out from overload candidate storefront-web
+  owned_capabilities:
+  - docs-sync
+  - ux-review
+  slo_targets:
+    queue_p95_hours: 24
+    lead_time_p50_hours: 48
+  persona_ref: .takt/personas/implementer.md
+  policy_refs:
+  - .takt/policies/governance.md
+  - .takt/policies/quality.md
+  skill_refs:
+  - skill-storefront-web-docs-sync-ux-review
+  active: false
+  source_refresh_id: R-20260210T041108Z

@@ -1,5 +1,5 @@
 name: agentteams-governance
-description: Governance-first orchestration for AgentTeams v4
+description: Governance-first orchestration for AgentTeams v5
 max_iterations: 20
 personas:
   coordinator: ../personas/coordinator.md

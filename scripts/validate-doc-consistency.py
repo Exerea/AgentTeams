@@ -16,7 +16,9 @@ REQUIRED_README_TOKENS = [
     "agentteams doctor",
     "agentteams orchestrate",
     "agentteams audit",
+    "agentteams audit --scope fleet",
     ".takt/tasks",
+    ".takt/control-plane",
     "TAKT",
 ]
 

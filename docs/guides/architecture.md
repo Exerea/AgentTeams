@@ -1,73 +1,104 @@
-# Architecture (v4)
+# Architecture (v5)
 
 ## Overview
 
-AgentTeams v4 is a TAKT-first orchestration architecture with a single execution source of truth.
+AgentTeams v5 is a TAKT-first orchestration architecture with:
 
-### Core Principles
+- local task governance runtime
+- metadata-only fleet control plane
+- event-driven self-refresh proposal generation
+
+## Core Principles
 
 - One runtime authority: `.takt/`
 - One task authority: `.takt/tasks/TASK-*.yaml`
 - One governance piece: `.takt/pieces/agentteams-governance.yaml`
 - One declaration authority: task `declarations` + `handoffs`
+- One fleet authority: `.takt/control-plane/` (metadata only)
 - No runtime fallback to legacy operation
 
 ## Topology
 
 ```text
 .
-├─ .takt/
-│  ├─ config.yaml
-│  ├─ pieces/
-│  │  └─ agentteams-governance.yaml
-│  ├─ personas/
-│  ├─ policies/
-│  ├─ knowledge/
-│  ├─ output-contracts/
-│  ├─ instructions/
-│  ├─ tasks/
-│  │  └─ TASK-*.yaml
-│  └─ logs/
-├─ scripts/
-│  ├─ at.py
-│  ├─ audit-takt-governance.py
-│  ├─ validate-takt-task.py
-│  └─ validate-takt-evidence.py
-└─ legacy/
-   └─ codex-states/
+|- .takt/
+|  |- config.yaml
+|  |- pieces/agentteams-governance.yaml
+|  |- personas/
+|  |- policies/
+|  |- knowledge/
+|  |- output-contracts/
+|  |- instructions/
+|  |- skills/
+|  |- tasks/TASK-*.yaml
+|  |- logs/
+|  `- control-plane/
+|     |- registry/projects.yaml
+|     |- intake/<project_id>/YYYYMMDDTHHMMSSZ.yaml
+|     |- signals/latest.yaml
+|     |- signals/history/
+|     |- team-catalog/teams.yaml
+|     |- rule-catalog/routing-rules.yaml
+|     |- skill-catalog/skills.yaml
+|     |- refresh-queue/R-*.yaml
+|     `- refresh-proposals/RP-*.md
+|- scripts/
+|  |- at.py
+|  |- audit-takt-governance.py
+|  |- audit-fleet-control-plane.py
+|  |- validate-takt-task.py
+|  |- validate-takt-evidence.py
+|  |- validate-control-plane-schema.py
+|  |- aggregate-fleet-signals.py
+|  |- detect-fleet-incidents.py
+|  |- detect-role-overload.py
+|  `- generate-refresh-pr.py
+`- templates/workflows/agentteams-export-metadata.yml
 ```
 
-## Execution Flow
+## Execution Flow (Local Runtime)
 
 1. `agentteams orchestrate --task-file .takt/tasks/TASK-*.yaml`
-2. `at.py` compiles task payload, including declaration timeline, into TAKT prompt input.
+2. `at.py` compiles local task payload plus active team/skill context.
 3. TAKT executes `.takt/pieces/agentteams-governance.yaml`.
-4. During and after execution, each team intent/handoff is recorded in task `declarations` and `handoffs`.
+4. Team intent/handoff evidence is recorded in `declarations` and `handoffs`.
 5. Post validation runs:
    - `validate-takt-task.py`
    - `validate-takt-evidence.py`
-6. Governance audit is available through `agentteams audit`.
-7. Use `agentteams audit --verbose` to print per-task chronological declaration/handoff lines.
+6. Governance audit:
+   - `agentteams audit --scope local --strict`
+
+## Fleet Detection Flow (Control Plane)
+
+1. Project repo exports metadata-only intake.
+2. Bot PR submits only `.takt/control-plane/intake/**` to central AgentTeams repo.
+3. Path guard validates intake-only changes.
+4. Intake merge triggers event-driven detection workflow.
+5. Workflow runs:
+   - aggregate signals
+   - recurring incident detection
+   - role overload detection
+   - refresh queue/proposal generation
+6. Auto-generated refresh PR is reviewed by QA and leader gates.
 
 ## Governance Distribution Model
 
-Required team coverage is derived from task flags:
+Required team coverage resolves in this order:
 
-- `qa_required` -> `qa-review-guild`
-- `security_required` -> `backend`
-- `ux_required` -> `frontend`
-- `docs_required` -> `documentation-guild`
-- `research_required` -> `innovation-research-guild`
+1. `routing.required_teams` (v5 canonical)
+2. `flags` mapping (legacy compatibility until 2026-06-30)
 
-Audit checks required coverage and minimum distribution count.
+Evidence coverage in review/done phases must include:
 
-## CI Contract
+- required teams
+- expected `rule:<rule_id>`
+- expected `skill:<skill_id>`
 
-Required jobs:
+## Scheduling Policy
 
-- `validate-takt-task-linux`
-- `validate-takt-task-windows`
-- `validate-takt-evidence-linux`
-- `orchestrate-smoke-mock`
-- `validate-doc-consistency`
-- `validate-secrets-linux`
+- Fleet detection does not rely on periodic jobs.
+- Event trigger is intake update only (`push` on `.takt/control-plane/intake/**`).
+- Workflow execution requires both repo variables:
+  - `AGENTTEAMS_CONTROL_PLANE_ENABLED=true`
+  - `AGENTTEAMS_CONTROL_PLANE_MODE=hub`
+- This avoids duplicate scheduled runs in every repository.
