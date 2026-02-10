@@ -19,6 +19,6 @@ if (Get-Command py -ErrorAction SilentlyContinue) {
 }
 
 Write-Host 'ERROR [PATH_LAYOUT_INVALID] python runtime not found (python or py -3 required).'
-Write-Host 'Next: Install python, then retry: agentteams init <git-url>'
-Write-Host 'Compat: .\at.cmd init <git-url>'
+Write-Host 'Next: Install python, then retry: agentteams doctor'
+Write-Host 'Compat: .\at.cmd doctor'
 exit 1

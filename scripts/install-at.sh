@@ -57,5 +57,5 @@ if [[ -n "$resolved_agentteams" && "$resolved_agentteams" != "$target_agentteams
   echo "To prioritize AgentTeams launcher, prepend $target_dir in PATH."
 fi
 
-echo "Try: agentteams init"
-echo "Compat: at init"
+echo "Try: agentteams doctor"
+echo "Compat: at doctor"

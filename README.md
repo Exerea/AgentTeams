@@ -1,293 +1,181 @@
-# AgentTeams
+# AgentTeams v5 (TAKT-Only + Control Plane)
 
-Template Repo 前提で各プロジェクトに同梱して使う、マルチAIエージェント運用構成の `v2.8` です。  
-基盤は `Atomic States + Protocol Team + Documentation Guild` を維持し、`Tech Specialist / QA&Review / Innovation&Research`、`backend/security-expert`、`frontend/ux-specialist`、Secret Leakage 最終保証、Role Gap 半自動検知を統合しています。
+AgentTeams v5 keeps TAKT as the only runtime and adds a metadata-only fleet
+control plane for cross-project detection and self-refresh proposals.
 
-## 目的
-- 依頼の分解、実装、レビュー、文書更新を一貫運用する
-- `1 task = 1 file` で衝突を避ける
-- ゲートで品質を強制する（QA/Security/UX/Protocol/Secret/Role Gap）
+## Runtime Model
 
-## 正本ファイル
-- 憲法: `.codex/AGENTS.md`
-- 司令塔: `.codex/coordinator.md`
-- 状態: `.codex/states/_index.yaml`, `.codex/states/TASK-*.yaml`
-- ロール不足管理: `.codex/states/_role-gap-index.yaml`, `.codex/role-gap-rules.yaml`
-- 共通運用: `shared/skills/common-ops.md`
+- Canonical runtime: `TAKT only`
+- Canonical task source: `.takt/tasks/TASK-*.yaml`
+- Canonical orchestration piece: `.takt/pieces/agentteams-governance.yaml`
+- Fleet control plane: `.takt/control-plane/`
+- Legacy historical task files: `legacy/codex-states/`
 
-## 記載・文字コードルール
-- ドキュメントと状態ファイルは UTF-8 前提（`*.md`, `*.yaml`, `*.yml`, `*.json`）。
-- PowerShell で読取する場合は文字化け防止のため `-Encoding utf8` を明示する。
-- 例: `Get-Content .codex/AGENTS.md -Encoding utf8`
-- PowerShell で書き込みする場合も `Set-Content -Encoding utf8` または `Out-File -Encoding utf8` を使用する。
+## CLI
 
-## 主要方針（v2.8）
-1. `frontend/code-reviewer` は廃止済みとし、正規レビュー担当は `qa-review-guild/code-critic` とする（新規割当は validator で失敗）
-2. コード変更 task は `qa_review_required=true` を標準適用
-3. 外部公開API/認証認可/PII変更は `backend_security_required=true` を標準適用
-4. UI変更/導線変更/フォーム体験変更は `ux_review_required=true` を標準適用
-5. `ux_review_required=true` の task は `frontend/ux-specialist` 完了前に `done` 不可（UX Gate）
-6. `backend_security_required=true` の task は `backend/security-expert` 完了前に `done` 不可
-7. `research_track_enabled=true` の採用判断は `poc_result + ADR承認` を必須
-8. `detect-role-gaps` は候補検知、`validate-role-gap-review` は放置/証跡不備をブロック
-9. `validate-secrets` 失敗時は `done` 不可（Secret Scan Gate）
-10. 稼働宣言を二層化し、Task開始時の `chat` は `固定開始宣言 -> 日本語口上 -> DECLARATION` を必須化、`handoff memo` は `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>` を必須化
-11. 作業開始時と Gate判断時に必要性判断を行い、追加レビュー・追加Gate・MCP活用が有効なら `【進言】...` を必須化
+Supported commands:
 
-## クイックスタート
-- 運用シナリオ正本: `docs/guides/request-routing-scenarios.md`
-- ルール判定例正本: `docs/guides/rule-examples.md`
-- 依頼文テンプレは `User Request` をコピーして使う
-- `coordinatorとして処理して` は推奨文であり必須ではない（coordinator がデフォルト受理）
+- `agentteams init`
+- `agentteams doctor`
+- `agentteams orchestrate`
+- `agentteams audit`
 
-### 導入コマンド（推奨）
+`agentteams audit` scopes:
+
+- Local governance audit: `agentteams audit --scope local --strict`
+- Fleet control-plane audit: `agentteams audit --scope fleet --strict`
+- Default scope is local.
+
+Removed commands:
+
+- `agentteams sync`
+- `agentteams report-incident`
+- `agentteams guard-chat`
+
+Removed commands return an explicit discontinued error in v5.
+
+## Install Prerequisites
+
+- Git
+- Python 3.9+
+- TAKT (`npm install -g takt`)
+- PyYAML (`python -m pip install pyyaml`)
+
+## Quick Start
+
+### 1. Initialize Current Repository
+
 ```bash
-./scripts/install-at.sh
-```
-- Linux/macOS で `at` を直接使う場合は最初に実行（`~/.local/bin/at` を作成）
-
-```powershell
-agentteams init
-agentteams init <git-url>
 agentteams init --here
-agentteams init <git-url> -w <workspace-path>
+```
+
+### 2. Run Health Check
+
+```bash
 agentteams doctor
-agentteams sync
-agentteams report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
-agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
-```
-```bash
-./agentteams init
-./agentteams init <git-url>
-./agentteams init --here
-./agentteams init <git-url> -w <workspace-path>
-./agentteams doctor
-./agentteams sync
-./agentteams report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
-./agentteams guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
-```
-```powershell
-at init
-at init <git-url>
-at init --here
-at init <git-url> -w <workspace-path>
-at doctor
-at sync
-at report-incident --task-file <path> --code <warning_code> --summary "<text>" --project <name>
-at guard-chat --event <task_start|role_switch|gate> --team <team> --role <role> --task <task_id|N/A> --task-title "<title>" --message-file <path> --task-file <TASK-*.yaml>
-```
-- Windows では `at` が `C:\Windows\System32\at.exe` に解決される場合があるため、`agentteams` を優先する
-- `--agents-policy coexist|replace|keep`（既定: `coexist`）
-- `agentteams init` は clone 先ディレクトリを正規化し、`AGENTS.md` 競合を自動処理する
-- `agentteams init` を引数なしで実行した場合:
-1. Git 管理下なら `--here` 相当で現在 repo に導入する
-2. Git 管理外なら Repository URL を対話で確認する
-- `agentteams doctor` は現在 repo の導入状態を診断し、次に打つ 1 コマンドを提示する
-- `agentteams sync` は AgentTeams 本体の incident-registry を `.codex/cache` へ同期する（タスク開始前 / CI で実行）
-- `agentteams report-incident` は task の warning/notes と incident-registry 候補ファイルを更新する
-- 通常チャット送信は `agentteams guard-chat` 経由を必須とし、送信前に宣言フォーマット違反をブロックする
-- 標準フロー: `agentteams sync` -> `agentteams report-incident` -> `validate-repo`
-- `bootstrap-agent-teams` は `agentteams init` の内部実装として呼び出される
-- `agentteams init` 実行には `python`（または `py -3` / `python3`）が必要
-
-### 内部互換コマンド（通常は不要）
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-agent-teams.ps1 --target <project-path>
-```
-```bash
-bash ./scripts/bootstrap-agent-teams.sh --target <project-path>
 ```
 
-## 稼働宣言プロトコル
-- 固定開始宣言（Task開始時のみ）: `殿のご命令と各AGENTS.mdに忠実に従う家臣たちが集まりました。──家臣たちが動きます！`
-- 口上テンプレ: `【稼働口上】殿、ただいま <家老|足軽> の <team>/<role> が「<task_title>」を務めます。<要旨>`
-- 進言テンプレ: `【進言】<提案内容>（理由: <risk_or_benefit>）`
-- 機械可読フォーマット: `DECLARATION team=<team> role=<role> task=<task_id|N/A> action=<action>`
-- 呼称マッピング: `ユーザー=殿様`, `coordinator=家老`, `coordinator以外=足軽`
-- `chat`: Task開始時は `固定開始宣言 -> 口上 -> DECLARATION` の3行をこの順で行う（固定開始宣言はTask開始時のみ）
-- `chat`: ロール切替時・Gate判断時は口上 + 宣言を行う
-- `chat`: 作業開始時・Gate判断時には必要性判断を行い、必要時は進言も併記する
-- `chat`: 送信前に `agentteams guard-chat` を実行し、成功時のみ `logs/e2e-ai-log.md` へ追記する
-- 口上では `T-310` のような `task_id` 単独表現を禁止し、作業タイトルを必ず伝える
-- 標準ログ: `logs/e2e-ai-log.md`（`agentteams init` で初回テンプレートを自動生成）
-- ガード運用設定: `.codex/runtime-policy.yaml`
-- `task`: `handoffs.memo` の先頭行に宣言を記録する
-- 例: `DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_code_critic`
-
-## MCP運用（DevTools MCP）
-- 位置づけ: MCP は常時必須ではない。`coordinator` が必要性判断して有効と判断した場合に進言して使用する。
-- 主な適用場面:
-1. UI/UX レビューで実動作確認が必要な場合
-2. Protocol warning の再現（Network/Console/DOM確認）が必要な場合
-3. 不具合の再現条件が CLI ログだけでは不足する場合
-- 証跡の残し方:
-1. `chat` に `【進言】...DevTools MCP...` を明記
-2. `handoffs.memo` 先頭に `DECLARATION ... action=...` を記録
-3. `notes` に `mcp_evidence` を記録
-`mcp_evidence: tool=devtools, purpose=<目的>, result=<結果>, artifacts=<スクリーンショット/ログの場所>`
-- 禁止事項:
-1. 秘密情報（鍵/トークン/個人情報）を画面・ログへ貼り付けない
-2. 本番データを無断で操作しない
-3. MCP結果のみで確定せず、該当 Gate の基準（QA/Security/Protocol等）を併せて満たす
-
-## ローカル検証
-### Index
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-states-index.ps1 -Path .\.codex\states\_index.yaml
-```
-```bash
-bash ./scripts/validate-states-index.sh ./.codex/states/_index.yaml
-```
-
-### Task
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-task-state.ps1 -Path .\.codex\states\TASK-00110-member-tier-migration.yaml
-```
-```bash
-bash ./scripts/validate-task-state.sh ./.codex/states/TASK-00110-member-tier-migration.yaml
-```
-
-### Secret Scan
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-secrets.ps1
-```
-```bash
-bash ./scripts/validate-secrets.sh
-```
-- `gitleaks` 未導入時は初回実行で `./.tools/gitleaks/` に自動取得して実行する（既存導入済みがあればそちらを優先）
-
-### Role Gap
-```powershell
-python .\scripts\detect-role-gaps.py
-python .\scripts\validate-role-gap-review.py
-```
-```bash
-python3 ./scripts/detect-role-gaps.py
-python3 ./scripts/validate-role-gap-review.py
-```
-
-### Chat Declaration
-```powershell
-python .\scripts\validate-chat-declaration.py
-```
-```bash
-python3 ./scripts/validate-chat-declaration.py
-```
-
-### Chat Guard Usage
-```powershell
-python .\scripts\validate-chat-guard-usage.py
-```
-```bash
-python3 ./scripts/validate-chat-guard-usage.py
-```
-
-### Incident Registry
-```powershell
-python .\scripts\validate-incident-registry.py
-python .\scripts\validate-incident-sync-freshness.py
-python .\scripts\detect-recurring-incident.py
-```
-```bash
-python3 ./scripts/validate-incident-registry.py
-python3 ./scripts/validate-incident-sync-freshness.py
-python3 ./scripts/detect-recurring-incident.py
-```
-
-### All-in-one
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1
-```
-```bash
-bash ./scripts/validate-repo.sh
-```
-
-### `agentteams init` E2E
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-at-init.ps1
-```
-
-### Operation Smoke E2E（実運用URL）
-```powershell
-mkdir <workdir>
-Set-Location <workdir>
-git clone https://github.com/Exerea/AgentTeams.git
-Set-Location .\AgentTeams
-.\agentteams.cmd init https://github.com/Exerea/eye-texture-converter.git -w .\workspace --verbose
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-agentteams-operation.ps1 -MinTeams 3 -MinRoles 5
-```
-
-### Operation Smoke E2E（CI/ネット非依存）
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-agentteams-operation.ps1 -UseFixtureRepo -MinTeams 3 -MinRoles 5
-```
-
-### Operation Smoke 失敗時の切り分け順
-1. 送信前ガード証跡（`validate-chat-guard-usage.py`）
-2. 宣言（`validate-chat-declaration.py`）
-3. task構造（`validate-task-state.ps1` / `validate-task-state.sh`）
-4. 読取証跡・分散証跡（`validate-operation-evidence.py`）
-
-## CI 必須チェック
-ワークフロー: `.github/workflows/agentteams-validate.yml`
-
-1. `validate-index-windows`
-2. `validate-index-linux`
-3. `validate-task-windows`
-4. `validate-task-linux`
-5. `validate-doc-consistency`
-6. `validate-scenarios-structure`
-7. `validate-rule-examples-coverage`
-8. `detect-role-gaps`
-9. `validate-role-gap-review`
-10. `validate-chat-declaration`
-11. `validate-chat-guard-usage`
-12. `validate-incident-registry`
-13. `validate-incident-sync-freshness`
-14. `detect-recurring-incident`
-15. `operation-smoke-windows`
-16. `validate-secrets-linux`
-
-## Branch Protection
-1. GitHub `Settings -> Branches -> Add rule` で `main` ルールを作成
-2. `Require status checks to pass before merging` を有効化
-3. 上記16チェックを Required checks に登録
-
-## 運用メモ
-- role gap 候補の状態遷移は `open -> triaged -> accepted/rejected -> implemented`
-- `accepted` は `adr_ref` 必須
-- `implemented` は `decision_note` に変更証跡必須
-- `_index.yaml` と `_role-gap-index.yaml` は coordinator 専任更新
-- ルール解釈が曖昧な場合は `docs/guides/rule-examples.md` の Good/Bad を優先する
-- `detect-role-gaps.py` は新規候補や内容変化がある場合のみ `_role-gap-index.yaml` を更新する
-
-## Immediate Correction (v2.8.1)
-- Improvement Proposal Rule: `status=blocked` または `warnings.status=open` が残る task は、`IMPROVEMENT_PROPOSAL type=<process|role|tool|rule|cleanup> priority=<high|medium|low> owner=coordinator summary=<text>` を `notes` か `handoffs.memo` に必須記録する。
-- Deprecation Hygiene: `.codex/deprecation-rules.yaml` を正本とし、`scripts/validate-deprecated-assets.py` で廃止資産の残存と再混入を検査する。
-
-### Deprecation Validation
-```powershell
-python .\scripts\validate-deprecated-assets.py
-```
-```bash
-python3 ./scripts/validate-deprecated-assets.py
-```
-
-## AgentTeams Self-Update
-AgentTeams 自身の改善を commit/push まで自動化したい場合は以下を使用する。
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\self-update-agentteams.ps1 -TaskFile .\.codex\states\TASK-00100-member-tier-adr.yaml -Message "chore(agentteams): self-update" -NoPush
-```
+### 3. Orchestrate a Task
 
 ```bash
-bash ./scripts/self-update-agentteams.sh --task-file ./.codex/states/TASK-00100-member-tier-adr.yaml --message "chore(agentteams): self-update" --no-push
+agentteams orchestrate --task-file .takt/tasks/TASK-00140-final-code-review.yaml
 ```
 
-### オプション
-- `-TaskFile` / `--task-file` (required): 自己更新対象の `TASK-*.yaml`
-- `--no-push` / `-NoPush`: commit のみ作成して push しない
+Mock smoke execution:
 
-### Self-Update Evidence
-- `logs/e2e-ai-log.md` に `【稼働口上】` と `DECLARATION team=coordinator role=coordinator task=<task_id> action=self_update_commit_push` を追記し、同一commitでstageする
-- `status=done` の task 以外は self-update を拒否する
+```bash
+agentteams orchestrate --task-file .takt/tasks/TASK-00140-final-code-review.yaml --provider mock --no-post-validate
+```
+
+### 4. Audit Local/Fleet Governance
+
+```bash
+agentteams audit --scope local --strict
+agentteams audit --scope fleet --strict
+```
+
+## Task Schema (v5)
+
+```yaml
+id: T-00140
+title: final-code-review
+status: todo # todo|in_progress|in_review|blocked|done
+task: |
+  Execution instruction body for TAKT
+goal: ""
+constraints: []
+acceptance: []
+flags: # legacy-compatible until 2026-06-30
+  qa_required: true
+  security_required: false
+  ux_required: false
+  docs_required: true
+  research_required: false
+routing: # canonical for v5+
+  required_teams:
+    - coordinator
+    - documentation-guild
+    - qa-review-guild
+  capability_tags:
+    - final-review
+    - docs-sync
+    - qa-review
+warnings: []
+declarations:
+  - at: 2026-02-10T00:00:00Z
+    team: coordinator
+    role: coordinator
+    action: triage
+    what: "decompose task and assign required teams"
+    controlled_by:
+      - "piece:agentteams-governance"
+      - "rule:default-routing"
+      - "skill:skill-routing-governance"
+handoffs: []
+notes: ""
+updated_at: 2026-02-10T00:00:00Z
+```
+
+Compatibility policy:
+
+- `flags` only: allowed until 2026-06-30
+- from 2026-07-01: tasks must define `routing`
+
+## Control Plane Operation
+
+- Intake source: `.takt/control-plane/intake/<project_id>/YYYYMMDDTHHMMSSZ.yaml`
+- Aggregated signals: `.takt/control-plane/signals/latest.yaml`
+- Queue/proposals:
+  - `.takt/control-plane/refresh-queue/R-*.yaml`
+  - `.takt/control-plane/refresh-proposals/RP-*.md`
+- Team/rule/skill catalogs:
+  - `.takt/control-plane/team-catalog/teams.yaml`
+  - `.takt/control-plane/rule-catalog/routing-rules.yaml`
+  - `.takt/control-plane/skill-catalog/skills.yaml`
+
+Detection mode:
+
+- Event-driven only (no periodic schedule required)
+- Triggered only by intake updates (`push` on `.takt/control-plane/intake/**`)
+- Workflow guard variables:
+  - `AGENTTEAMS_CONTROL_PLANE_ENABLED=true`
+  - `AGENTTEAMS_CONTROL_PLANE_MODE=hub`
+- Set these only in the central AgentTeams repository
+
+## Validation
+
+Repository validation scripts:
+
+- Linux: `bash ./scripts/validate-repo.sh`
+- Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate-repo.ps1`
+
+Main checks:
+
+- `validate-takt-task.py`
+- `validate-takt-evidence.py`
+- `validate-control-plane-schema.py`
+- `validate-doc-consistency.py`
+- `validate-scenarios-structure.py`
+- `validate-secrets.sh/.ps1`
+
+## CI Required Checks (v5)
+
+- `validate-takt-task-linux`
+- `validate-takt-task-windows`
+- `validate-takt-evidence-linux`
+- `validate-control-plane-schema`
+- `validate-intake-pr-paths`
+- `orchestrate-smoke-mock`
+- `validate-doc-consistency`
+- `validate-secrets-linux`
+
+## Guides
+
+- `docs/guides/architecture.md`
+- `docs/guides/request-routing-scenarios.md`
+- `docs/guides/takt-orchestration.md`
+
+## Notes
+
+- Runtime behavior must not depend on assets under `legacy/`.
+- Fleet control plane stores metadata only; source/session full text is out of scope.

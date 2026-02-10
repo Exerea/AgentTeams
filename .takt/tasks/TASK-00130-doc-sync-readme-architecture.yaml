@@ -1,0 +1,83 @@
+id: T-00130
+title: README とアーキテクチャ図を同期
+status: in_progress
+task: 'Title: README とアーキテクチャ図を同期
+
+
+  Execution instruction:
+
+  Mermaid 図と機能一覧を更新中。
+
+
+  Required review flags:
+
+  - qa_required: false
+
+  - security_required: false
+
+  - ux_required: false
+
+  - docs_required: true
+
+  - research_required: false'
+goal: ''
+constraints: []
+acceptance: []
+flags:
+  qa_required: false
+  security_required: false
+  ux_required: false
+  docs_required: true
+  research_required: false
+routing:
+  required_teams:
+  - coordinator
+  - documentation-guild
+  capability_tags:
+  - docs-sync
+  - architecture-docs
+warnings: []
+declarations:
+- at: '2026-02-07T03:00:00Z'
+  team: coordinator
+  role: coordinator
+  action: triage
+  what: assign documentation path and review order
+  controlled_by:
+  - "piece:agentteams-governance"
+  - "flags"
+  - "rule:default-routing"
+  - "skill:skill-routing-governance"
+- at: '2026-02-07T03:00:00Z'
+  team: documentation-guild
+  role: api-spec-owner
+  action: handoff_to_tech_writer
+  what: OpenAPI changes passed to technical writer
+  controlled_by:
+  - "handoff"
+  - "policy:docs-review"
+  - "rule:docs-required"
+  - "skill:skill-docs-synchronization"
+- at: '2026-02-07T03:15:00Z'
+  team: documentation-guild
+  role: tech-writer
+  action: handoff_to_code_critic
+  what: guide and README updates sent for QA review
+  controlled_by:
+  - "handoff"
+  - "policy:qa-review"
+  - "rule:docs-required"
+  - "skill:skill-docs-synchronization"
+handoffs:
+- from: documentation-guild/api-spec-owner
+  to: documentation-guild/tech-writer
+  at: 2026-02-07 03:00:00+00:00
+  memo: DECLARATION team=documentation-guild role=api-spec-owner task=T-130 action=handoff_to_tech_writer
+    | OpenAPI 同期済み。ガイド更新を依頼。
+- from: documentation-guild/tech-writer
+  to: qa-review-guild/code-critic
+  at: 2026-02-07 03:15:00+00:00
+  memo: DECLARATION team=documentation-guild role=tech-writer task=T-130 action=handoff_to_code_critic
+    | docs/guides と README 同期中。最終確認を依頼予定。
+notes: Mermaid 図と機能一覧を更新中。
+updated_at: '2026-02-07T03:15:00Z'

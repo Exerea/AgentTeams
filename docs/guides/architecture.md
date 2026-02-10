@@ -1,68 +1,104 @@
-# Architecture Guide
+# Architecture (v5)
 
-## Purpose
-AgentTeams の運用制御、役割連携、主要ゲートを俯瞰する。
+## Overview
 
-## Multi-Guild Flow (Mermaid)
-```mermaid
-flowchart LR
-  USER[User Request] --> COORD[coordinator]
-  COORD --> TASK[TASK-*.yaml]
+AgentTeams v5 is a TAKT-first orchestration architecture with:
 
-  TASK --> UID[frontend/ui-designer]
-  UID --> UX[frontend/ux-specialist]
-  UX --> FSEC{frontend security required?}
-  FSEC -- yes --> FSECR[frontend/security-expert]
-  FSEC -- no --> QA1
-  FSECR --> QA1[qa-review-guild/code-critic]
-  QA1 --> QA2[qa-review-guild/test-architect]
+- local task governance runtime
+- metadata-only fleet control plane
+- event-driven self-refresh proposal generation
 
-  TASK --> BAPI[backend/api-architect]
-  BAPI --> BDB[backend/db-specialist]
-  BDB --> BSEC[backend/security-expert]
-  BSEC --> QA1
+## Core Principles
 
-  TASK --> WARN{Protocol Warning?}
-  WARN -- yes --> IA[protocol-team/interaction-auditor]
-  IA --> PA[protocol-team/protocol-architect]
-  PA --> PO[protocol-team/prompt-optimizer]
-  PO --> DOCADR
+- One runtime authority: `.takt/`
+- One task authority: `.takt/tasks/TASK-*.yaml`
+- One governance piece: `.takt/pieces/agentteams-governance.yaml`
+- One declaration authority: task `declarations` + `handoffs`
+- One fleet authority: `.takt/control-plane/` (metadata only)
+- No runtime fallback to legacy operation
 
-  TASK --> DOCADR[documentation-guild/adr-manager]
-  DOCADR --> DOCAPI[documentation-guild/api-spec-owner]
-  DOCAPI --> DOCTW[documentation-guild/tech-writer]
-  QA2 --> DOCTW
-  DOCTW --> COORD
+## Topology
 
-  TASK --> RND{research_track_enabled?}
-  RND -- yes --> TREND[innovation-research-guild/trend-researcher]
-  TREND --> POC[innovation-research-guild/poc-agent]
-  POC --> DOCADR
-
-  COORD --> INDEX[_index.yaml (coordinator only)]
-  COORD --> RG[_role-gap-index.yaml (coordinator only)]
+```text
+.
+|- .takt/
+|  |- config.yaml
+|  |- pieces/agentteams-governance.yaml
+|  |- personas/
+|  |- policies/
+|  |- knowledge/
+|  |- output-contracts/
+|  |- instructions/
+|  |- skills/
+|  |- tasks/TASK-*.yaml
+|  |- logs/
+|  `- control-plane/
+|     |- registry/projects.yaml
+|     |- intake/<project_id>/YYYYMMDDTHHMMSSZ.yaml
+|     |- signals/latest.yaml
+|     |- signals/history/
+|     |- team-catalog/teams.yaml
+|     |- rule-catalog/routing-rules.yaml
+|     |- skill-catalog/skills.yaml
+|     |- refresh-queue/R-*.yaml
+|     `- refresh-proposals/RP-*.md
+|- scripts/
+|  |- at.py
+|  |- audit-takt-governance.py
+|  |- audit-fleet-control-plane.py
+|  |- validate-takt-task.py
+|  |- validate-takt-evidence.py
+|  |- validate-control-plane-schema.py
+|  |- aggregate-fleet-signals.py
+|  |- detect-fleet-incidents.py
+|  |- detect-role-overload.py
+|  `- generate-refresh-pr.py
+`- templates/workflows/agentteams-export-metadata.yml
 ```
 
-## State Topology
-- 全体一覧: `.codex/states/_index.yaml`
-- task 詳細: `.codex/states/TASK-*.yaml`
-- ロール不足管理: `.codex/states/_role-gap-index.yaml`
-- 警告管理: `warnings[]`
-- ルーティング: `target_stack.*`
-- ゲート制御: `local_flags.*`
+## Execution Flow (Local Runtime)
 
-## Key Gates
-- `Documentation Sync Gate`: `local_flags.documentation_sync_required`
-- `QA Gate`: `local_flags.qa_review_required`
-- `Backend Security Gate`: `local_flags.backend_security_required`
-- `UX Gate`: `local_flags.ux_review_required`
-- `Research Gate`: `local_flags.research_track_enabled`
-- `Protocol Gate`: `warnings.status=open`
-- `Secret Scan Gate`: `validate-secrets` 最新成功必須
-- `Role Gap Review Gate`: `validate-role-gap-review` 成功必須
+1. `agentteams orchestrate --task-file .takt/tasks/TASK-*.yaml`
+2. `at.py` compiles local task payload plus active team/skill context.
+3. TAKT executes `.takt/pieces/agentteams-governance.yaml`.
+4. Team intent/handoff evidence is recorded in `declarations` and `handoffs`.
+5. Post validation runs:
+   - `validate-takt-task.py`
+   - `validate-takt-evidence.py`
+6. Governance audit:
+   - `agentteams audit --scope local --strict`
 
-## Notes
-- API仕様の正本は `docs/api/openapi.yaml`。
-- 通信規約の正本は `docs/guides/communication-protocol.md`。
-- `_index.yaml` と `_role-gap-index.yaml` の更新者は coordinator のみ。
+## Fleet Detection Flow (Control Plane)
 
+1. Project repo exports metadata-only intake.
+2. Bot PR submits only `.takt/control-plane/intake/**` to central AgentTeams repo.
+3. Path guard validates intake-only changes.
+4. Intake merge triggers event-driven detection workflow.
+5. Workflow runs:
+   - aggregate signals
+   - recurring incident detection
+   - role overload detection
+   - refresh queue/proposal generation
+6. Auto-generated refresh PR is reviewed by QA and leader gates.
+
+## Governance Distribution Model
+
+Required team coverage resolves in this order:
+
+1. `routing.required_teams` (v5 canonical)
+2. `flags` mapping (legacy compatibility until 2026-06-30)
+
+Evidence coverage in review/done phases must include:
+
+- required teams
+- expected `rule:<rule_id>`
+- expected `skill:<skill_id>`
+
+## Scheduling Policy
+
+- Fleet detection does not rely on periodic jobs.
+- Event trigger is intake update only (`push` on `.takt/control-plane/intake/**`).
+- Workflow execution requires both repo variables:
+  - `AGENTTEAMS_CONTROL_PLANE_ENABLED=true`
+  - `AGENTTEAMS_CONTROL_PLANE_MODE=hub`
+- This avoids duplicate scheduled runs in every repository.

@@ -1,0 +1,33 @@
+project_id: storefront-web
+repo: github.com/Exerea/StorefrontWeb
+captured_at: '2026-02-10T00:00:00Z'
+window_days: 14
+task_counts:
+  todo: 3
+  in_progress: 4
+  in_review: 1
+  blocked: 1
+  done: 2
+lead_time_p50_hours: 54.0
+queue_p95_hours: 30.0
+rework_rate: 0.31
+blocked_ratio: 0.22
+incident_fingerprints:
+  - hash: fp-001
+    error_class: qa_rework
+    failing_step: qa_review
+    policy: quality
+    rule_id: default-routing
+  - hash: fp-002
+    error_class: security_missing_review
+    failing_step: leader_gate
+    policy: governance
+    rule_id: security-required
+policy_failures:
+  - policy: quality
+    count: 3
+top_overlaps:
+  - capability: docs-sync
+    responsibility_overlap_ratio: 0.39
+  - capability: ux-review
+    responsibility_overlap_ratio: 0.36

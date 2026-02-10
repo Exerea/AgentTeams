@@ -1,0 +1,73 @@
+id: T-00100
+title: 会員ランク導入の ADR を作成
+status: done
+task: 'Title: 会員ランク導入の ADR を作成
+
+
+  Execution instruction:
+
+  採用案/却下案を比較し ADR を作成。PR summary を証跡として記録済み。
+
+
+  Required review flags:
+
+  - qa_required: false
+
+  - security_required: false
+
+  - ux_required: false
+
+  - docs_required: true
+
+  - research_required: false'
+goal: ''
+constraints: []
+acceptance: []
+flags:
+  qa_required: false
+  security_required: false
+  ux_required: false
+  docs_required: true
+  research_required: false
+routing:
+  required_teams:
+  - coordinator
+  - documentation-guild
+  capability_tags:
+  - docs-sync
+  - adr
+warnings: []
+declarations:
+- at: '2026-02-07T02:00:00Z'
+  team: coordinator
+  role: coordinator
+  action: triage
+  what: initial routing and delegation for this task
+  controlled_by:
+  - "piece:agentteams-governance"
+  - "flags"
+  - "rule:default-routing"
+  - "skill:skill-routing-governance"
+- at: '2026-02-07T02:20:00Z'
+  team: documentation-guild
+  role: adr-manager
+  action: handoff_to_db_specialist
+  what: handoff to backend/db-specialist after ADR gate
+  controlled_by:
+  - "handoff"
+  - "policy:handoff"
+  - "rule:docs-required"
+  - "skill:skill-docs-synchronization"
+handoffs:
+- from: coordinator
+  to: documentation-guild/adr-manager
+  at: 2026-02-07 02:00:00+00:00
+  memo: DECLARATION team=coordinator role=coordinator task=T-100 action=assign_adr_manager
+    | Major Decision Required。会員ランク導入理由を ADR 化すること。
+- from: documentation-guild/adr-manager
+  to: backend/db-specialist
+  at: 2026-02-07 02:20:00+00:00
+  memo: DECLARATION team=documentation-guild role=adr-manager task=T-100 action=handoff_to_db_specialist
+    | ADR gate satisfied。T-110 は depends_on と adr_refs を満たす。
+notes: 採用案/却下案を比較し ADR を作成。PR summary を証跡として記録済み。
+updated_at: '2026-02-07T02:20:00Z'

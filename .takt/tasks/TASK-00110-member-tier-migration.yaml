@@ -1,0 +1,117 @@
+id: T-00110
+title: 会員ランクテーブル追加とマイグレーション実装
+status: in_review
+task: 'Title: 会員ランクテーブル追加とマイグレーション実装
+
+
+  Execution instruction:
+
+  ADR gate 条件を満たしたため実装着手。Security先行レビュー後、ロールバック手順を含めてレビュー待ち。
+
+
+  Required review flags:
+
+  - qa_required: true
+
+  - security_required: true
+
+  - ux_required: false
+
+  - docs_required: true
+
+  - research_required: false'
+goal: ''
+constraints: []
+acceptance: []
+flags:
+  qa_required: true
+  security_required: true
+  ux_required: false
+  docs_required: true
+  research_required: false
+routing:
+  required_teams:
+  - coordinator
+  - backend
+  - documentation-guild
+  - qa-review-guild
+  capability_tags:
+  - backend-implementation
+  - security-review
+  - api-docs
+  - qa-review
+warnings: []
+declarations:
+- at: '2026-02-07T02:20:00Z'
+  team: coordinator
+  role: coordinator
+  action: triage
+  what: assign backend and documentation reviewers based on flags
+  controlled_by:
+  - "piece:agentteams-governance"
+  - "flags"
+  - "rule:default-routing"
+  - "skill:skill-routing-governance"
+- at: '2026-02-07T02:20:00Z'
+  team: documentation-guild
+  role: adr-manager
+  action: handoff_to_db_specialist
+  what: handoff to backend/db-specialist after ADR approval
+  controlled_by:
+  - "handoff"
+  - "policy:handoff"
+  - "rule:docs-required"
+  - "skill:skill-docs-synchronization"
+- at: '2026-02-07T02:40:00Z'
+  team: backend
+  role: db-specialist
+  action: handoff_to_backend_security
+  what: backend migration implementation sent to security reviewer
+  controlled_by:
+  - "handoff"
+  - "policy:security-review"
+  - "rule:security-required"
+  - "skill:skill-backend-security-review"
+- at: '2026-02-07T02:45:00Z'
+  team: backend
+  role: security-expert
+  action: handoff_to_api_spec_owner
+  what: security review complete and handed to api spec owner
+  controlled_by:
+  - "handoff"
+  - "policy:security-review"
+  - "rule:security-required"
+  - "skill:skill-backend-security-review"
+- at: '2026-02-07T02:50:00Z'
+  team: documentation-guild
+  role: api-spec-owner
+  action: handoff_to_code_critic
+  what: OpenAPI sync complete and sent to QA review
+  controlled_by:
+  - "handoff"
+  - "policy:qa-review"
+  - "rule:qa-required"
+  - "skill:skill-qa-regression-trace"
+handoffs:
+- from: documentation-guild/adr-manager
+  to: backend/db-specialist
+  at: 2026-02-07 02:20:00+00:00
+  memo: DECLARATION team=documentation-guild role=adr-manager task=T-110 action=handoff_to_db_specialist
+    | ADR gate satisfied。実装着手可。
+- from: backend/db-specialist
+  to: backend/security-expert
+  at: 2026-02-07 02:40:00+00:00
+  memo: DECLARATION team=backend role=db-specialist task=T-110 action=handoff_to_backend_security
+    | tier テーブルと migration 実装完了。Security 先行レビューを依頼。
+- from: backend/security-expert
+  to: documentation-guild/api-spec-owner
+  at: 2026-02-07 02:45:00+00:00
+  memo: DECLARATION team=backend role=security-expert task=T-110 action=handoff_to_api_spec_owner
+    | 重大指摘なし。OpenAPI 同期へ進行可。
+- from: documentation-guild/api-spec-owner
+  to: qa-review-guild/code-critic
+  at: '2026-02-07T02:50:00Z'
+  memo: DECLARATION team=documentation-guild role=api-spec-owner task=T-110 action=handoff_to_code_critic
+    | OpenAPI sync completed. Proceed to QA review.
+notes: ADR gate 条件を満たしたため実装着手。Security先行レビュー後、ロールバック手順を含めてレビュー待ち。
+updated_at: '2026-02-07T02:45:00Z'

@@ -1,0 +1,120 @@
+version: 1
+skills:
+- skill_id: skill-routing-governance
+  description: enforce routing declarations and governance transitions
+  applies_to_teams:
+  - coordinator
+  trigger:
+    capability_tags:
+    - routing
+    - governance
+  instruction_ref: .takt/skills/skill-routing-governance.md
+  policy_refs:
+  - .takt/policies/governance.md
+  evidence_requirements:
+  - declarations controlled_by must include rule:default-routing
+  enabled: true
+- skill_id: skill-docs-synchronization
+  description: synchronize docs, architecture guides, and API descriptions
+  applies_to_teams:
+  - documentation-guild
+  trigger:
+    capability_tags:
+    - docs-sync
+    - api-docs
+    - architecture-docs
+  instruction_ref: .takt/skills/skill-docs-synchronization.md
+  policy_refs:
+  - .takt/policies/quality.md
+  evidence_requirements:
+  - declarations controlled_by must include skill:skill-docs-synchronization
+  enabled: true
+- skill_id: skill-backend-security-review
+  description: enforce security review before leader gate for backend-sensitive tasks
+  applies_to_teams:
+  - backend
+  trigger:
+    capability_tags:
+    - security-review
+    - backend-implementation
+  instruction_ref: .takt/skills/skill-backend-security-review.md
+  policy_refs:
+  - .takt/policies/governance.md
+  - .takt/policies/quality.md
+  evidence_requirements:
+  - declarations controlled_by must include skill:skill-backend-security-review
+  enabled: true
+- skill_id: skill-qa-regression-trace
+  description: record QA regression evidence and rework decisions
+  applies_to_teams:
+  - qa-review-guild
+  trigger:
+    capability_tags:
+    - qa-review
+    - regression-analysis
+  instruction_ref: .takt/skills/skill-qa-regression-trace.md
+  policy_refs:
+  - .takt/policies/quality.md
+  evidence_requirements:
+  - declarations controlled_by must include skill:skill-qa-regression-trace
+  enabled: true
+- skill_id: skill-ux-regression-review
+  description: ensure UX-heavy tasks include usability and regression checks
+  applies_to_teams:
+  - frontend
+  trigger:
+    capability_tags:
+    - ux-review
+    - frontend-implementation
+  instruction_ref: .takt/skills/skill-ux-regression-review.md
+  policy_refs:
+  - .takt/policies/quality.md
+  evidence_requirements:
+  - declarations controlled_by must include skill:skill-ux-regression-review
+  enabled: true
+- skill_id: skill-research-synthesis
+  description: structure discovery output into actionable implementation proposals
+  applies_to_teams:
+  - innovation-research-guild
+  trigger:
+    capability_tags:
+    - research
+    - exploration
+  instruction_ref: .takt/skills/skill-research-synthesis.md
+  policy_refs:
+  - .takt/policies/governance.md
+  evidence_requirements:
+  - declarations controlled_by must include skill:skill-research-synthesis
+  enabled: true
+- skill_id: skill-payments-api-security-review-api-docs
+  description: specialized execution skill for payments-api overload split
+  applies_to_teams:
+  - team-payments-api-security-review-api-docs
+  trigger:
+    capability_tags:
+    - security-review
+    - api-docs
+  instruction_ref: .takt/skills/skill-payments-api-security-review-api-docs.md
+  policy_refs:
+  - .takt/policies/governance.md
+  - .takt/policies/quality.md
+  evidence_requirements:
+  - declarations controlled_by must include skill:skill-payments-api-security-review-api-docs
+  enabled: false
+  source_refresh_id: R-20260210T040832Z
+- skill_id: skill-storefront-web-docs-sync-ux-review
+  description: specialized execution skill for storefront-web overload split
+  applies_to_teams:
+  - team-storefront-web-docs-sync-ux-review
+  trigger:
+    capability_tags:
+    - docs-sync
+    - ux-review
+  instruction_ref: .takt/skills/skill-storefront-web-docs-sync-ux-review.md
+  policy_refs:
+  - .takt/policies/governance.md
+  - .takt/policies/quality.md
+  evidence_requirements:
+  - declarations controlled_by must include skill:skill-storefront-web-docs-sync-ux-review
+  enabled: false
+  source_refresh_id: R-20260210T041108Z

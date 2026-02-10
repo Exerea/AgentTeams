@@ -1,0 +1,7 @@
+detected_at: '2026-02-10T04:08:20Z'
+min_projects: 3
+recurring_incidents:
+- fingerprint: fp-001
+  project_count: 3
+  threshold: 3
+  status: recurring

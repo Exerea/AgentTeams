@@ -1,0 +1,37 @@
+TAKT Task File Format
+=====================
+
+This repository uses custom governance tasks under `.takt/tasks/`.
+
+Required fields:
+- id
+- title
+- status (todo|in_progress|in_review|blocked|done)
+- task
+- goal
+- constraints
+- acceptance
+- flags (legacy-compatible until 2026-06-30)
+- routing (v5 canonical)
+- warnings
+- declarations
+- handoffs
+- notes
+- updated_at
+
+Routing fields:
+- required_teams (non-empty list)
+- capability_tags (list)
+
+Declaration item fields:
+- at (UTC timestamp, YYYY-MM-DDTHH:MM:SSZ)
+- team
+- role
+- action
+- what
+- controlled_by (non-empty list)
+
+Declaration policy:
+- include an initial coordinator triage declaration
+- keep declarations and handoffs aligned by phase
+- include `rule:<rule_id>` and `skill:<skill_id>` evidence in controlled_by

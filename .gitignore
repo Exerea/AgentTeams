@@ -1,0 +1,14 @@
+# Generated/runtime artifacts
+__pycache__/
+*.pyc
+
+# TAKT runtime outputs
+.takt/logs/*
+.takt/reports/*
+.takt/persona_sessions.json
+.takt/session-state.json
+!.takt/logs/.gitkeep
+
+# OS/editor
+.DS_Store
+Thumbs.db

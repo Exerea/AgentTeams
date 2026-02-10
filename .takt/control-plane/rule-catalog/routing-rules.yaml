@@ -1,0 +1,82 @@
+version: 1
+rules:
+- rule_id: default-routing
+  when:
+    any_status:
+    - todo
+    - in_progress
+    - in_review
+    - blocked
+    - done
+  require_teams:
+  - coordinator
+  require_skills:
+  - skill-routing-governance
+  priority: 100
+  enabled: true
+- rule_id: docs-required
+  when:
+    flag:
+      key: docs_required
+      equals: true
+  require_teams:
+  - documentation-guild
+  require_skills:
+  - skill-docs-synchronization
+  priority: 80
+  enabled: true
+- rule_id: qa-required
+  when:
+    flag:
+      key: qa_required
+      equals: true
+  require_teams:
+  - qa-review-guild
+  require_skills:
+  - skill-qa-regression-trace
+  priority: 80
+  enabled: true
+- rule_id: security-required
+  when:
+    flag:
+      key: security_required
+      equals: true
+  require_teams:
+  - backend
+  require_skills:
+  - skill-backend-security-review
+  priority: 90
+  enabled: true
+- rule_id: ux-required
+  when:
+    flag:
+      key: ux_required
+      equals: true
+  require_teams:
+  - frontend
+  require_skills:
+  - skill-ux-regression-review
+  priority: 90
+  enabled: true
+- rule_id: research-required
+  when:
+    flag:
+      key: research_required
+      equals: true
+  require_teams:
+  - innovation-research-guild
+  require_skills:
+  - skill-research-synthesis
+  priority: 90
+  enabled: true
+- rule_id: incident-fp-001
+  when:
+    incident_fingerprint: fp-001
+  require_teams:
+  - coordinator
+  - qa-review-guild
+  require_skills:
+  - skill-qa-regression-trace
+  priority: 70
+  enabled: false
+  source_refresh_id: R-20260210T040832Z

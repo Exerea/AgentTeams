@@ -1,0 +1,117 @@
+name: agentteams-governance
+description: Governance-first orchestration for AgentTeams v5
+max_iterations: 20
+personas:
+  coordinator: ../personas/coordinator.md
+  implementer: ../personas/implementer.md
+  qa_reviewer: ../personas/qa-reviewer.md
+  leader: ../personas/leader.md
+policies:
+  governance: ../policies/governance.md
+  quality: ../policies/quality.md
+knowledge:
+  topology: ../knowledge/topology.md
+instructions:
+  triage: ../instructions/triage.md
+  execute: ../instructions/execute.md
+  qa_review: ../instructions/qa-review.md
+  leader_gate: ../instructions/leader-gate.md
+report_formats:
+  summary: ../output-contracts/summary.md
+initial_movement: triage
+movements:
+  - name: triage
+    edit: false
+    persona: coordinator
+    policy:
+      - governance
+    knowledge:
+      - topology
+    instruction: triage
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - WebSearch
+      - WebFetch
+    rules:
+      - condition: triage is complete and tasks are decomposed
+        next: execute
+      - condition: triage failed due to missing prerequisites
+        next: ABORT
+  - name: execute
+    edit: true
+    persona: implementer
+    policy:
+      - governance
+      - quality
+    knowledge:
+      - topology
+    instruction: execute
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Edit
+      - Write
+      - Bash
+      - WebSearch
+      - WebFetch
+    rules:
+      - condition: implementation completed and ready for review
+        next: qa_review
+      - condition: implementation blocked
+        next: ABORT
+  - name: qa_review
+    edit: false
+    persona: qa_reviewer
+    policy:
+      - quality
+    knowledge:
+      - topology
+    instruction: qa_review
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Bash
+      - WebSearch
+      - WebFetch
+    output_contracts:
+      report:
+        - name: qa-review.md
+          format: summary
+    rules:
+      - condition: qa approved
+        next: leader_gate
+      - condition: qa requires changes
+        next: execute
+      - condition: critical defects found
+        next: ABORT
+  - name: leader_gate
+    edit: false
+    persona: leader
+    policy:
+      - governance
+      - quality
+    knowledge:
+      - topology
+    instruction: leader_gate
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Bash
+      - WebSearch
+      - WebFetch
+    output_contracts:
+      report:
+        - name: final-summary.md
+          format: summary
+    rules:
+      - condition: leader approved
+        next: COMPLETE
+      - condition: leader requests rework
+        next: execute
+      - condition: leader rejected due to systemic risk
+        next: ABORT

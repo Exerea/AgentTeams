@@ -1,5 +1,0 @@
-version: v1
-retired_roles:
-  - frontend/code-reviewer
-retired_paths:
-  - .codex/roles/frontend/code-reviewer
